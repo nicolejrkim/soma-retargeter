@@ -28,10 +28,13 @@ class FeetStabilizer:
         """
         self._load_config(config)
 
-        if self.robot_type == 'unitree_g1':
+        if self.robot_type == 'unitree_g1' or self.robot_mjcf is not None:
             self.robot_builder = newton.ModelBuilder()
-            self.robot_builder.add_mjcf(
-                newton.utils.download_asset("unitree_g1") / "mjcf/g1_29dof_rev_1_0.xml")
+            if self.robot_type == 'unitree_g1':
+                mjcf_path = newton.utils.download_asset("unitree_g1") / "mjcf/g1_29dof_rev_1_0.xml"
+            else:  # any other robot — local MJCF from the config's robot_mjcf field
+                mjcf_path = io_utils.get_config_file(self.robot_mjcf)
+            self.robot_builder.add_mjcf(mjcf_path)
 
             self.num_body_count = self.robot_builder.body_count
             self.ik_model = self._build_model(1)
@@ -175,6 +178,7 @@ class FeetStabilizer:
     def _load_config(self, config: str):
         data = io_utils.load_json(config)
         self.robot_type = data['robot_type']
+        self.robot_mjcf = data.get('robot_mjcf', None)
         self.ik_iterations = data['ik_iterations']
         self.joint_limit_weight = data['joint_limit_weight']
 

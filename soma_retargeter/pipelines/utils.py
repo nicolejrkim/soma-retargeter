@@ -15,6 +15,9 @@ class SourceType(IntEnum):
 class TargetType(IntEnum):
     """Enumeration of supported target model types."""
     UNITREE_G1 = auto()
+    UNITREE_R1 = auto()
+    UNITREE_H1_2 = auto()
+    BOOSTER_K1 = auto()
 
 _SOURCE_TYPE_TO_STR = {
     SourceType.SOMA : "soma"
@@ -22,7 +25,10 @@ _SOURCE_TYPE_TO_STR = {
 _STR_TO_SOURCE_TYPE = {s : t for t, s in _SOURCE_TYPE_TO_STR.items()}
 
 _TARGET_TYPE_TO_STR = {
-    TargetType.UNITREE_G1 : "unitree_g1"
+    TargetType.UNITREE_G1 : "unitree_g1",
+    TargetType.UNITREE_R1 : "unitree_r1",
+    TargetType.UNITREE_H1_2 : "unitree_h1_2",
+    TargetType.BOOSTER_K1 : "booster_k1"
 }
 _STR_TO_TARGET_TYPE = {s : t for t, s in _TARGET_TYPE_TO_STR.items()}
 
@@ -131,14 +137,16 @@ def get_retargeter_config(source: SourceType, target: TargetType) -> dict:
     Raises:
         ValueError: If the source or target type is not supported.
     """
-    if target != TargetType.UNITREE_G1:
-        raise ValueError(f"Unknown target type [{target}].")
-
-    if source == SourceType.SOMA:
-        filename = 'soma_to_g1_retargeter_config.json'
-    else:
+    if source != SourceType.SOMA:
         raise ValueError(f"Unknown source type [{source}] for target [{target}].")
 
-    return io_utils.load_json(
-        io_utils.get_config_file('unitree_g1', filename)
-    )
+    _TARGET_CONFIG = {
+        TargetType.UNITREE_G1: ('unitree_g1', 'soma_to_g1_retargeter_config.json'),
+        TargetType.UNITREE_R1: ('unitree_r1', 'soma_to_r1_retargeter_config.json'),
+        TargetType.UNITREE_H1_2: ('unitree_h1_2', 'soma_to_h1_2_retargeter_config.json'),
+        TargetType.BOOSTER_K1: ('booster_k1', 'soma_to_k1_retargeter_config.json'),
+    }
+    if target not in _TARGET_CONFIG:
+        raise ValueError(f"Unknown target type [{target}].")
+    cfg_dir, filename = _TARGET_CONFIG[target]
+    return io_utils.load_json(io_utils.get_config_file(cfg_dir, filename))

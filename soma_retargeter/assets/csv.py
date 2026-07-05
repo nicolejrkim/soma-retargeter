@@ -83,6 +83,82 @@ class UnitreeG129DOF_CSVConfig:
         return row
 
 
+@dataclass
+class UnitreeR129DOF_CSVConfig(UnitreeG129DOF_CSVConfig):
+    # Same cm/euler/deg conventions as G1 (to_anim_frame/to_csv_row inherited);
+    # only the header differs. Columns follow the R1 MJCF DOF order — the five
+    # placeholder joints (waist_pitch, wrist pitch/yaw) are appended last.
+    name: str = "unitree_r1_29dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof",
+        "left_knee_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
+        "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof",
+        "right_knee_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof",
+        "waist_roll_joint_dof", "waist_yaw_joint_dof",
+        "left_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
+        "left_shoulder_yaw_joint_dof", "left_elbow_joint_dof", "left_wrist_roll_joint_dof",
+        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
+        "right_shoulder_yaw_joint_dof", "right_elbow_joint_dof", "right_wrist_roll_joint_dof",
+        "waist_pitch_joint_dof",
+        "left_wrist_pitch_joint_dof", "left_wrist_yaw_joint_dof",
+        "right_wrist_pitch_joint_dof", "right_wrist_yaw_joint_dof"]
+
+
+@dataclass
+class UnitreeH1_2_CSVConfig(UnitreeG129DOF_CSVConfig):
+    name: str = "unitree_h1_2_27dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "left_hip_yaw_joint_dof", "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof",
+        "left_knee_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
+        "right_hip_yaw_joint_dof", "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof",
+        "right_knee_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof",
+        "torso_joint_dof",
+        "left_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof", "left_shoulder_yaw_joint_dof",
+        "left_elbow_joint_dof", "left_wrist_roll_joint_dof", "left_wrist_pitch_joint_dof",
+        "left_wrist_yaw_joint_dof",
+        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof", "right_shoulder_yaw_joint_dof",
+        "right_elbow_joint_dof", "right_wrist_roll_joint_dof", "right_wrist_pitch_joint_dof",
+        "right_wrist_yaw_joint_dof"]
+
+
+@dataclass
+class BoosterK1_CSVConfig(UnitreeG129DOF_CSVConfig):
+    name: str = "booster_k1_22dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "AAHead_yaw_dof", "Head_pitch_dof",
+        "ALeft_Shoulder_Pitch_dof", "Left_Shoulder_Roll_dof", "Left_Elbow_Pitch_dof", "Left_Elbow_Yaw_dof",
+        "ARight_Shoulder_Pitch_dof", "Right_Shoulder_Roll_dof", "Right_Elbow_Pitch_dof", "Right_Elbow_Yaw_dof",
+        "Left_Hip_Pitch_dof", "Left_Hip_Roll_dof", "Left_Hip_Yaw_dof",
+        "Left_Knee_Pitch_dof", "Left_Ankle_Pitch_dof", "Left_Ankle_Roll_dof",
+        "Right_Hip_Pitch_dof", "Right_Hip_Roll_dof", "Right_Hip_Yaw_dof",
+        "Right_Knee_Pitch_dof", "Right_Ankle_Pitch_dof", "Right_Ankle_Roll_dof"]
+
+
+_CSV_CONFIG_BY_ROBOT = {
+    "unitree_g1": UnitreeG129DOF_CSVConfig,
+    "unitree_r1": UnitreeR129DOF_CSVConfig,
+    "unitree_h1_2": UnitreeH1_2_CSVConfig,
+    "booster_k1": BoosterK1_CSVConfig,
+}
+
+
+def get_csv_config(robot_type: str) -> RobotCSVConfig:
+    """Return the CSV config for a robot target string (e.g. 'unitree_r1')."""
+    cls = _CSV_CONFIG_BY_ROBOT.get(robot_type)
+    if cls is None:
+        raise ValueError(f"No CSV config for robot [{robot_type}]")
+    return cls()
+
+
 def load_csv(file_path: str, fps: float = 120.0, csv_config: RobotCSVConfig = UnitreeG129DOF_CSVConfig()) -> CSVAnimationBuffer:
     """
     Load a robot motion CSV file into a ``CSVAnimationBuffer``.

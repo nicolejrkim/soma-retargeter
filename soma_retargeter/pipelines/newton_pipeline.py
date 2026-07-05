@@ -69,10 +69,14 @@ class NewtonPipeline:
         self.smooth_joint_filter_coord_masks = None
         self.joint_limit_clamper = None
 
-        if (self.target_type == pipeline_utils.TargetType.UNITREE_G1):
+        if self.target_type == pipeline_utils.TargetType.UNITREE_G1 or \
+                retargeter_config.get('robot_mjcf') is not None:
             self.robot_builder = newton.ModelBuilder()
-            self.robot_builder.add_mjcf(
-                newton.utils.download_asset("unitree_g1") / "mjcf/g1_29dof_rev_1_0.xml")
+            if self.target_type == pipeline_utils.TargetType.UNITREE_G1:
+                mjcf_path = newton.utils.download_asset("unitree_g1") / "mjcf/g1_29dof_rev_1_0.xml"
+            else:  # any other robot — local MJCF from the config's robot_mjcf field
+                mjcf_path = io_utils.get_config_file(retargeter_config['robot_mjcf'])
+            self.robot_builder.add_mjcf(mjcf_path)
 
             self.human_robot_scaler = HumanToRobotScaler(
                 skeleton, retargeter_config['model_height'], io_utils.get_config_file(retargeter_config['human_robot_scaler_config']))

@@ -49,7 +49,7 @@ class Viewer:
         self.playback_total_time = 0.0
 
         self.retarget_source_options = ['soma']
-        self.retarget_target_options = ['unitree_g1']
+        self.retarget_target_options = ['unitree_g1', 'unitree_r1', 'unitree_h1_2', 'booster_k1']
         self.retarget_solver_options = ['Newton']
         self.retarget_solver_idx     = 0
         self.retarget_target_idx     = 0
@@ -320,7 +320,10 @@ class Viewer:
                     defaultextension=".csv",
                     filetypes=[("CSV files", "*.csv")])
                 if save_path:
-                    csv_utils.save_csv(save_path, self.robot_csv_animation_buffers[0])
+                    csv_utils.save_csv(
+                        save_path, self.robot_csv_animation_buffers[0],
+                        csv_config=csv_utils.get_csv_config(
+                            self.retarget_target_options[self.retarget_target_idx]))
 
             if self.robot_csv_animation_buffers[0] is None:
                 ui.end_disabled()
@@ -465,7 +468,8 @@ class Viewer:
                     csv_buffer = csv_buffers[i]
                     dst_path = export_path / pathlib.Path(batch[i]).relative_to(import_path).with_suffix(".csv")
                     dst_path.parent.mkdir(parents=True, exist_ok=True)
-                    csv_utils.save_csv(dst_path, csv_buffer)
+                    csv_utils.save_csv(dst_path, csv_buffer,
+                                       csv_config=csv_utils.get_csv_config(retarget_target))
 
             nb_retargeted_motions += len(batch)
 

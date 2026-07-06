@@ -143,11 +143,32 @@ class BoosterK1_CSVConfig(UnitreeG129DOF_CSVConfig):
         "Right_Knee_Pitch_dof", "Right_Ankle_Pitch_dof", "Right_Ankle_Roll_dof"]
 
 
+@dataclass
+class BoosterT1_CSVConfig(UnitreeG129DOF_CSVConfig):
+    # Same cm/euler/deg conventions as G1 (to_anim_frame/to_csv_row inherited);
+    # only the header differs. Columns follow the T1_serial MJCF DOF order
+    # (head x2, left arm x4, right arm x4, waist, left leg x6, right leg x6 = 23).
+    name: str = "booster_t1_23dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "AAHead_yaw_dof", "Head_pitch_dof",
+        "Left_Shoulder_Pitch_dof", "Left_Shoulder_Roll_dof", "Left_Elbow_Pitch_dof", "Left_Elbow_Yaw_dof",
+        "Right_Shoulder_Pitch_dof", "Right_Shoulder_Roll_dof", "Right_Elbow_Pitch_dof", "Right_Elbow_Yaw_dof",
+        "Waist_dof",
+        "Left_Hip_Pitch_dof", "Left_Hip_Roll_dof", "Left_Hip_Yaw_dof",
+        "Left_Knee_Pitch_dof", "Left_Ankle_Pitch_dof", "Left_Ankle_Roll_dof",
+        "Right_Hip_Pitch_dof", "Right_Hip_Roll_dof", "Right_Hip_Yaw_dof",
+        "Right_Knee_Pitch_dof", "Right_Ankle_Pitch_dof", "Right_Ankle_Roll_dof"]
+
+
 _CSV_CONFIG_BY_ROBOT = {
     "unitree_g1": UnitreeG129DOF_CSVConfig,
     "unitree_r1": UnitreeR129DOF_CSVConfig,
     "unitree_h1_2": UnitreeH1_2_CSVConfig,
     "booster_k1": BoosterK1_CSVConfig,
+    "booster_t1": BoosterT1_CSVConfig,
 }
 
 

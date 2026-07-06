@@ -18,6 +18,7 @@ class TargetType(IntEnum):
     UNITREE_R1 = auto()
     UNITREE_H1_2 = auto()
     BOOSTER_K1 = auto()
+    BOOSTER_T1 = auto()
 
 _SOURCE_TYPE_TO_STR = {
     SourceType.SOMA : "soma"
@@ -28,7 +29,8 @@ _TARGET_TYPE_TO_STR = {
     TargetType.UNITREE_G1 : "unitree_g1",
     TargetType.UNITREE_R1 : "unitree_r1",
     TargetType.UNITREE_H1_2 : "unitree_h1_2",
-    TargetType.BOOSTER_K1 : "booster_k1"
+    TargetType.BOOSTER_K1 : "booster_k1",
+    TargetType.BOOSTER_T1 : "booster_t1"
 }
 _STR_TO_TARGET_TYPE = {s : t for t, s in _TARGET_TYPE_TO_STR.items()}
 
@@ -145,6 +147,7 @@ def get_retargeter_config(source: SourceType, target: TargetType) -> dict:
         TargetType.UNITREE_R1: ('unitree_r1', 'soma_to_r1_retargeter_config.json'),
         TargetType.UNITREE_H1_2: ('unitree_h1_2', 'soma_to_h1_2_retargeter_config.json'),
         TargetType.BOOSTER_K1: ('booster_k1', 'soma_to_k1_retargeter_config.json'),
+        TargetType.BOOSTER_T1: ('booster_t1', 'soma_to_t1_retargeter_config.json'),
     }
     if target not in _TARGET_CONFIG:
         raise ValueError(f"Unknown target type [{target}].")

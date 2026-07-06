@@ -49,7 +49,7 @@ class Viewer:
         self.playback_total_time = 0.0
 
         self.retarget_source_options = ['soma']
-        self.retarget_target_options = ['unitree_g1', 'unitree_r1', 'unitree_h1_2', 'booster_k1']
+        self.retarget_target_options = ['unitree_g1', 'unitree_r1', 'unitree_h1_2', 'booster_k1', 'booster_t1']
         self.retarget_solver_options = ['Newton']
         self.retarget_solver_idx     = 0
         self.retarget_target_idx     = 0

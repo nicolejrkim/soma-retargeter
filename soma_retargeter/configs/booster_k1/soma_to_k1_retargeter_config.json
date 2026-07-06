@@ -24,28 +24,40 @@
             "r_weight": 2.0
         },
         "LeftArm": {
-            "t_body": "Left_Arm_3",
-            "r_body": "Left_Arm_3",
+            "t_body": "Left_Arm_2",
+            "r_body": "Left_Arm_2",
             "t_weight": 1.5,
-            "r_weight": 0.15
+            "r_weight": 1.0
         },
         "LeftForeArm": {
+            "t_body": "Left_Arm_3",
+            "r_body": "Left_Arm_3",
+            "t_weight": 1.0,
+            "r_weight": 1.0
+        },
+        "LeftHand": {
             "t_body": "left_hand_link",
             "r_body": "left_hand_link",
             "t_weight": 1.0,
-            "r_weight": 1.0
+            "r_weight": 1.2
         },
         "RightArm": {
-            "t_body": "Right_Arm_3",
-            "r_body": "Right_Arm_3",
+            "t_body": "Right_Arm_2",
+            "r_body": "Right_Arm_2",
             "t_weight": 1.5,
-            "r_weight": 0.15
+            "r_weight": 1.0
         },
         "RightForeArm": {
+            "t_body": "Right_Arm_3",
+            "r_body": "Right_Arm_3",
+            "t_weight": 1.0,
+            "r_weight": 1.0
+        },
+        "RightHand": {
             "t_body": "right_hand_link",
             "r_body": "right_hand_link",
             "t_weight": 1.0,
-            "r_weight": 1.0
+            "r_weight": 1.2
         },
         "LeftLeg": {
             "t_body": "Left_Hip_Roll",

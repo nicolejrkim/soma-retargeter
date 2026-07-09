@@ -3,17 +3,27 @@
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List
+from typing import Callable, Dict, List, Optional
 
 import newton
 
 from soma_retargeter.assets.csv import (
+    AISapiens23DOF_CSVConfig,
     BoosterT1_23DOF_CSVConfig,
     RobotCSVConfig,
     UnitreeG129DOF_CSVConfig,
     UnitreeH1_2_27DOF_CSVConfig,
     UnitreeR1_24DOF_CSVConfig,
 )
+
+
+def _create_ai_sapiens_builder() -> "newton.ModelBuilder":
+    # Lazy import: resolution may regenerate the MJCF, which pulls in mujoco.
+    import soma_retargeter.assets.ai_sapiens as ai_sapiens_assets
+
+    builder = newton.ModelBuilder()
+    builder.add_mjcf(ai_sapiens_assets.resolve_ai_sapiens_mjcf_path())
+    return builder
 
 
 @dataclass(frozen=True)
@@ -50,6 +60,11 @@ class RobotSpec:
     must match the joint order of the robot model file, which is the layout
     Newton uses for ``joint_q``."""
 
+    builder_factory: Optional[Callable[[], "newton.ModelBuilder"]] = field(default=None, compare=False)
+    """Optional custom factory used instead of the default asset resolution in
+    ``create_builder`` (e.g. AI Sapiens resolves its MJCF through env/config
+    overrides and on-demand generation)."""
+
     def resolve_asset_root(self) -> Path:
         """
         Return the directory containing ``model_file``.
@@ -74,6 +89,9 @@ class RobotSpec:
         Raises:
             ValueError: If the model file extension is not supported.
         """
+        if self.builder_factory is not None:
+            return self.builder_factory()
+
         model_path = self.resolve_asset_root() / self.model_file
 
         builder = newton.ModelBuilder()
@@ -122,6 +140,15 @@ _ROBOT_REGISTRY: Dict[str, RobotSpec] = {
         config_dir="booster_t1",
         retargeter_configs={"soma": "soma_to_t1_retargeter_config.json"},
         csv_config=BoosterT1_23DOF_CSVConfig(),
+    ),
+    "ai_sapiens": RobotSpec(
+        name="ai_sapiens",
+        asset_folder="soma_retargeter/configs/ai_sapiens",
+        model_file="ai_sapiens_retarget.xml",
+        config_dir="ai_sapiens",
+        retargeter_configs={"soma": "soma_to_ai_sapiens_retargeter_config.json"},
+        csv_config=AISapiens23DOF_CSVConfig(),
+        builder_factory=_create_ai_sapiens_builder,
     ),
 }
 

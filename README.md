@@ -5,7 +5,7 @@
 
 Convert [SOMA](https://github.com/NVlabs/SOMA-X) human motion captures into humanoid robot joint animation. Takes BVH motion files as input and produces robot-playable CSV joint data as output using GPU-optimized inverse kinematics via [Newton](https://github.com/newton-physics/newton) and high-performance computation with [NVIDIA Warp](https://github.com/NVIDIA/warp).
 
-The retargeting pipeline handles proportional human-to-robot scaling, multi-objective IK solving with joint limits, feet stabilization to maintain ground contact, and per-DOF joint limit clamping. Currently supports SOMA as the input skeleton and Unitree G1 (29 DOF) as the output robot. Additional robot targets are planned.
+The retargeting pipeline handles proportional human-to-robot scaling, multi-objective IK solving with joint limits, feet stabilization to maintain ground contact, and per-DOF joint limit clamping. Currently supports SOMA as the input skeleton, with Unitree G1 (29 DOF) and Unitree H1-2 (27 DOF) as output robots. Additional robots can be added via the robot registry (`soma_retargeter/robotics/robot_registry.py`): one `RobotSpec` entry, three JSON configs under `soma_retargeter/configs/<robot>/`, and a CSV format class in `soma_retargeter/assets/csv.py`.
 
 SOMA Retargeter is part of the [SOMA body model](https://github.com/NVlabs/SOMA-X) ecosystem for humanoid motion data.
 

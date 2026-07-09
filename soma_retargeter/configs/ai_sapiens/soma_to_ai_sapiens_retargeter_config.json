@@ -108,7 +108,7 @@
   "robot_mjcf": "ai_sapiens/ai_sapiens_retarget.xml",
   "neutral_reference_weight": 0.35,
   "reset_solver_state_at_output_start": false,
-  "enable_solver_stage_trace": true,
+  "enable_solver_stage_trace": false,
   "enable_ai_sapiens_arm_projection": false,
   "enable_ai_sapiens_leg_projection": true,
   "enable_ai_sapiens_dynamic_lateral_correction": false,

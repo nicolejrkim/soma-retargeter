@@ -2322,9 +2322,61 @@ class NewtonPipeline:
         else:
             ik_solver.step(joint_q, joint_q, iterations=self.ik_iterations)
 
+        # Staged-solver CUDA graph capture: the direct-body-chain stage weights
+        # are frame-constant (pure config scales), so the two stage solves can
+        # be captured once with those weights baked in and replayed per frame.
+        # Features like the risk windows mutate the (host-side) position and
+        # rotation objective weights on some frames; the frame loop compares
+        # the live weight vectors against the baked ones and falls back to the
+        # eager solver whenever they differ, so replays are always consistent.
+        staged_graphs = None
+        if wp.get_device().is_cuda and self.ai_sapiens_direct_body_chain_staged_solver_enabled:
+            _staged_final_pos_w, _staged_final_rot_w = _snapshot_objective_weights()
+            _staged_q_backup = joint_q.numpy().copy()
+
+            def _apply_stage(stage):
+                if stage == 1:
+                    _apply_direct_body_chain_stage_weights(
+                        self.ai_sapiens_direct_body_chain_stage1_position_scales,
+                        self.ai_sapiens_direct_body_chain_stage1_rotation_scales,
+                        self.ai_sapiens_direct_body_chain_stage1_default_position_scale,
+                        self.ai_sapiens_direct_body_chain_stage1_default_rotation_scale,
+                    )
+                    return max(1, self.ai_sapiens_direct_body_chain_stage1_iterations)
+                _apply_direct_body_chain_stage_weights(
+                    self.ai_sapiens_direct_body_chain_stage2_position_scales,
+                    self.ai_sapiens_direct_body_chain_stage2_rotation_scales,
+                    self.ai_sapiens_direct_body_chain_stage2_default_position_scale,
+                    self.ai_sapiens_direct_body_chain_stage2_default_rotation_scale,
+                )
+                return max(1, self.ai_sapiens_direct_body_chain_stage2_iterations)
+
+            # Warm-up eager solves so all solver/tape buffers exist before capture.
+            for stage in (1, 2):
+                ik_solver.step(joint_q, joint_q, iterations=_apply_stage(stage))
+            wp.copy(joint_q, wp.array(_staged_q_backup, dtype=wp.float32))
+
+            _staged_baked_weights = []
+            _staged_graph_list = []
+            for stage in (1, 2):
+                iters = _apply_stage(stage)
+                _staged_baked_weights.append(_snapshot_objective_weights())
+                with wp.ScopedCapture() as _stage_cap:
+                    ik_solver.step(joint_q, joint_q, iterations=iters)
+                _staged_graph_list.append(_stage_cap.graph)
+            _restore_objective_weights(_staged_final_pos_w, _staged_final_rot_w)
+            wp.copy(joint_q, wp.array(_staged_q_backup, dtype=wp.float32))
+            staged_graphs = {
+                "graphs": _staged_graph_list,
+                "baked_weights": _staged_baked_weights,
+            }
+            print("[INFO] Staged-solver CUDA graphs captured (stage1 + stage2).")
+
         #import time
         num_frames_to_remove = self.num_initialization_frames + self.num_stabilization_frames
         joint_q_data = [np.full((len(self.input_targets[i]),), None) for i in range(num_envs)]
+        staged_graph_hits = [0, 0]
+        staged_eager_steps = [0, 0]
         solver_trace_arrays = None
         if self.enable_solver_stage_trace:
             q_trace_shape = (self.max_frames, num_envs, self.ik_model.joint_coord_count)
@@ -3115,11 +3167,19 @@ class NewtonPipeline:
                     self.ai_sapiens_direct_body_chain_stage1_default_position_scale,
                     self.ai_sapiens_direct_body_chain_stage1_default_rotation_scale,
                 )
-                ik_solver.step(
-                    joint_q,
-                    joint_q,
-                    iterations=max(1, self.ai_sapiens_direct_body_chain_stage1_iterations),
-                )
+                if (
+                    staged_graphs is not None
+                    and _snapshot_objective_weights() == staged_graphs["baked_weights"][0]
+                ):
+                    staged_graph_hits[0] += 1
+                    wp.capture_launch(staged_graphs["graphs"][0])
+                else:
+                    staged_eager_steps[0] += 1
+                    ik_solver.step(
+                        joint_q,
+                        joint_q,
+                        iterations=max(1, self.ai_sapiens_direct_body_chain_stage1_iterations),
+                    )
                 if solver_trace_arrays is not None:
                     solver_trace_arrays["q_after_direct_body_chain_stage1"][frame] = joint_q.numpy()
                 _apply_direct_body_chain_stage_weights(
@@ -3128,11 +3188,19 @@ class NewtonPipeline:
                     self.ai_sapiens_direct_body_chain_stage2_default_position_scale,
                     self.ai_sapiens_direct_body_chain_stage2_default_rotation_scale,
                 )
-                ik_solver.step(
-                    joint_q,
-                    joint_q,
-                    iterations=max(1, self.ai_sapiens_direct_body_chain_stage2_iterations),
-                )
+                if (
+                    staged_graphs is not None
+                    and _snapshot_objective_weights() == staged_graphs["baked_weights"][1]
+                ):
+                    staged_graph_hits[1] += 1
+                    wp.capture_launch(staged_graphs["graphs"][1])
+                else:
+                    staged_eager_steps[1] += 1
+                    ik_solver.step(
+                        joint_q,
+                        joint_q,
+                        iterations=max(1, self.ai_sapiens_direct_body_chain_stage2_iterations),
+                    )
                 if solver_trace_arrays is not None:
                     solver_trace_arrays["q_after_direct_body_chain_stage2"][frame] = joint_q.numpy()
                 _restore_objective_weights(final_position_weights, final_rotation_weights)
@@ -3409,6 +3477,11 @@ class NewtonPipeline:
 
             #end_time = time.time()
             #print(f"Time taken for frame {frame}: {end_time - start_time} seconds")
+
+        if staged_graphs is not None:
+            print(
+                f"[INFO] Staged-solver graph replays: stage1 {staged_graph_hits[0]}/{staged_graph_hits[0] + staged_eager_steps[0]}, "
+                f"stage2 {staged_graph_hits[1]}/{staged_graph_hits[1] + staged_eager_steps[1]} frames")
 
         if solver_trace_arrays is not None:
             self.last_solver_stage_trace = {

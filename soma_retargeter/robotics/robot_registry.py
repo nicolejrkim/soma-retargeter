@@ -8,6 +8,7 @@ from typing import Dict, List
 import newton
 
 from soma_retargeter.assets.csv import (
+    BoosterT1_23DOF_CSVConfig,
     RobotCSVConfig,
     UnitreeG129DOF_CSVConfig,
     UnitreeH1_2_27DOF_CSVConfig,
@@ -113,6 +114,14 @@ _ROBOT_REGISTRY: Dict[str, RobotSpec] = {
         config_dir="unitree_r1",
         retargeter_configs={"soma": "soma_to_r1_retargeter_config.json"},
         csv_config=UnitreeR1_24DOF_CSVConfig(),
+    ),
+    "booster_t1": RobotSpec(
+        name="booster_t1",
+        asset_folder="assets/robots/booster_t1",
+        model_file="mjcf/t1_serial.xml",
+        config_dir="booster_t1",
+        retargeter_configs={"soma": "soma_to_t1_retargeter_config.json"},
+        csv_config=BoosterT1_23DOF_CSVConfig(),
     ),
 }
 

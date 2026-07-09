@@ -114,6 +114,27 @@ class UnitreeR1_24DOF_CSVConfig(EulerRootRobotCSVConfig):
 
 
 @dataclass
+class BoosterT1_23DOF_CSVConfig(EulerRootRobotCSVConfig):
+    """Booster T1 (serial kinematics). Root pose is the Trunk (chest) body,
+    which carries the floating base in the Booster model."""
+    name: str = "booster_t1_23dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "AAHead_yaw_dof", "Head_pitch_dof",
+        "Left_Shoulder_Pitch_dof", "Left_Shoulder_Roll_dof",
+        "Left_Elbow_Pitch_dof", "Left_Elbow_Yaw_dof",
+        "Right_Shoulder_Pitch_dof", "Right_Shoulder_Roll_dof",
+        "Right_Elbow_Pitch_dof", "Right_Elbow_Yaw_dof",
+        "Waist_dof",
+        "Left_Hip_Pitch_dof", "Left_Hip_Roll_dof", "Left_Hip_Yaw_dof",
+        "Left_Knee_Pitch_dof", "Left_Ankle_Pitch_dof", "Left_Ankle_Roll_dof",
+        "Right_Hip_Pitch_dof", "Right_Hip_Roll_dof", "Right_Hip_Yaw_dof",
+        "Right_Knee_Pitch_dof", "Right_Ankle_Pitch_dof", "Right_Ankle_Roll_dof"]
+
+
+@dataclass
 class UnitreeH1_2_27DOF_CSVConfig(EulerRootRobotCSVConfig):
     name: str = "unitree_h1_2_27dof"
     csv_header: ClassVar[List[str]] = [

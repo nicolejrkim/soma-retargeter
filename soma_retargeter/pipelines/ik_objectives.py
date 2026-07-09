@@ -232,12 +232,20 @@ class IKSmoothJointFilter(ik.IKObjective):
 
 
 @wp.kernel
+def _fill_problem_weights(
+    in_value: wp.float32,
+    out_weights: wp.array1d(dtype=wp.float32),  # (n_batch)
+):
+    out_weights[wp.tid()] = in_value
+
+
+@wp.kernel
 def _temporal_reference_residuals(
     joint_q: wp.array2d(dtype=wp.float32),      # (n_batch, n_coords)
     target_q: wp.array2d(dtype=wp.float32),     # (n_batch, n_coords)
     dof_to_coord: wp.array1d(dtype=wp.int32),   # (n_dofs)
     coord_masks: wp.array1d(dtype=wp.float32),  # (n_coords)
-    weight: wp.array1d(dtype=wp.float32),       # (1)
+    weights: wp.array1d(dtype=wp.float32),      # (n_batch) per-problem weights
     start_idx: int,
     # outputs
     residuals: wp.array2d(dtype=wp.float32),    # (n_batch, n_residuals)
@@ -250,7 +258,7 @@ def _temporal_reference_residuals(
     mask = coord_masks[coord_idx]
     if mask > 0.0:
         error = joint_q[problem, coord_idx] - target_q[problem, coord_idx]
-        residuals[problem, start_idx + dof_idx] = error * weight[0] * mask
+        residuals[problem, start_idx + dof_idx] = error * weights[problem] * mask
     else:
         residuals[problem, start_idx + dof_idx] = 0.0
 
@@ -260,7 +268,7 @@ def _temporal_reference_jac_analytic(
     dof_to_coord: wp.array1d(dtype=wp.int32),   # (n_dofs)
     coord_masks: wp.array1d(dtype=wp.float32),  # (n_coords)
     start_idx: int,
-    weight: wp.array1d(dtype=wp.float32),       # (1)
+    weights: wp.array1d(dtype=wp.float32),      # (n_batch) per-problem weights
     # outputs
     jacobian: wp.array3d(dtype=wp.float32),     # (n_batch, n_residuals, n_dofs)
 ):
@@ -270,7 +278,7 @@ def _temporal_reference_jac_analytic(
         return
 
     # Diagonal Jacobian: dr[dof]/dq[dof] = weight * mask
-    jacobian[problem, start_idx + dof_idx, dof_idx] = weight[0] * coord_masks[coord_idx]
+    jacobian[problem, start_idx + dof_idx, dof_idx] = weights[problem] * coord_masks[coord_idx]
 
 
 class IKTemporalJointReference(ik.IKObjective):
@@ -296,7 +304,8 @@ class IKTemporalJointReference(ik.IKObjective):
         self.dof_to_coord = None
         self.target_q = None
         self.e_array = None
-        self._weight = wp.array([weight], dtype=wp.float32)
+        self._initial_weight = float(weight)
+        self._weights = None  # per-problem, allocated in init_buffers
 
         self.coord_masks = None
         self.coord_masks_np = None
@@ -316,6 +325,8 @@ class IKTemporalJointReference(ik.IKObjective):
 
         self.target_q = wp.zeros(
             shape=(self.n_batch, model.joint_coord_count), dtype=wp.float32, device=self.device)
+        self._weights = wp.full(
+            shape=self.n_batch, value=self._initial_weight, dtype=wp.float32, device=self.device)
 
         # Build DOF to coordinate mapping (same construction as IKSmoothJointFilter)
         dof_to_coord_np = np.full(self.n_dofs, -1, dtype=np.int32)
@@ -347,12 +358,23 @@ class IKTemporalJointReference(ik.IKObjective):
         return self.n_dofs
 
     def set_weight(self, value):
+        """Set the same weight for every problem (device write, graph-safe)."""
+        if self._weights is None:
+            self._initial_weight = float(value)
+            return
         wp.launch(
-            _update_weight,
-            dim=1,
+            _fill_problem_weights,
+            dim=self._weights.shape[0],
             inputs=[value],
-            outputs=[self._weight],
+            outputs=[self._weights],
             device=self.device)
+
+    def set_problem_weights(self, weights_np):
+        """Set an individual weight per problem (device write, graph-safe)."""
+        if self._weights is None:
+            return
+        wp.copy(self._weights, wp.array(
+            np.asarray(weights_np, dtype=np.float32), dtype=wp.float32, device=self.device))
 
     def set_target_from(self, joint_q: wp.array):
         """Device-to-device copy of the reference configuration (graph-safe)."""
@@ -369,7 +391,7 @@ class IKTemporalJointReference(ik.IKObjective):
                 self.target_q,
                 self.dof_to_coord,
                 self.coord_masks,
-                self._weight,
+                self._weights,
                 start_idx,
             ],
             outputs=[residuals],
@@ -389,7 +411,7 @@ class IKTemporalJointReference(ik.IKObjective):
                 self.dof_to_coord,
                 self.coord_masks,
                 start_idx,
-                self._weight,
+                self._weights,
             ],
             outputs=[jacobian],
             device=self.device,

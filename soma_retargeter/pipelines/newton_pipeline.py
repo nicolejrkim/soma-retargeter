@@ -99,6 +99,14 @@ class NewtonPipeline:
         # decompositions on a consistent branch. Inspired by the ROBOTIS
         # AI Sapiens fork.
         self.temporal_reference_weight = retargeter_config.get('temporal_joint_reference_weight', 0.0)
+        self.temporal_reference_mode = retargeter_config.get('temporal_joint_reference_mode', 'previous')
+        if self.temporal_reference_mode not in ('previous', 'neutral'):
+            raise ValueError("temporal_joint_reference_mode must be 'previous' or 'neutral'")
+        # Optional boost window: when the trigger joint's target height drops
+        # below the threshold (e.g. a deep crouch), the temporal prior weight
+        # is raised per problem to hard-lock the solution branch through the
+        # riskiest frames. Inspired by the ROBOTIS risk-window scheduling.
+        self.temporal_reference_boost = retargeter_config.get('temporal_joint_reference_boost', None)
         self.temporal_reference_coord_masks = None
         temporal_reference_body_masks = retargeter_config.get('temporal_joint_reference_body_masks', None)
         if temporal_reference_body_masks is not None:
@@ -297,6 +305,23 @@ class NewtonPipeline:
         else:
             ik_solver.step(joint_q, joint_q, iterations=self.ik_iterations)
 
+        temporal_boost_windows = None
+        if temporal_reference_objective is not None and self.temporal_reference_boost:
+            boost_cfg = self.temporal_reference_boost
+            trigger_joint = boost_cfg.get('trigger_joint', 'Hips')
+            threshold = float(boost_cfg['height_below'])
+            pre_frames = int(boost_cfg.get('pre_frames', 3))
+            post_frames = int(boost_cfg.get('post_frames', 3))
+            trigger_idx = self.mapped_joints.index(trigger_joint)
+            temporal_boost_windows = np.zeros((num_envs, self.max_frames), dtype=bool)
+            kernel = np.ones(pre_frames + post_frames + 1, dtype=int)
+            for env in range(num_envs):
+                heights = np.asarray(self.input_targets[env][:, trigger_idx, 2], dtype=np.float32)
+                active = np.convolve((heights < threshold).astype(int), kernel, mode='same') > 0
+                temporal_boost_windows[env, :len(active)] = active
+            n_boosted = int(temporal_boost_windows.sum())
+            print(f"[INFO]\t  Temporal Reference Boost: {n_boosted} frame-envs below {threshold} m")
+
         #import time
         num_frames_to_remove = self.num_initialization_frames + self.num_stabilization_frames
         joint_q_data = [np.full((len(self.input_targets[i]),), None) for i in range(num_envs)]
@@ -308,8 +333,18 @@ class NewtonPipeline:
                         self.temporal_reference_weight * (frame / float(num_frames_to_remove)))
 
             if temporal_reference_objective is not None:
-                # Reference is the previous frame's solution (device-to-device copy).
-                temporal_reference_objective.set_target_from(joint_q)
+                if self.temporal_reference_mode == 'previous':
+                    # Reference is the previous frame's solution (device-to-device copy).
+                    temporal_reference_objective.set_target_from(joint_q)
+                elif frame == 0:
+                    # Neutral mode: anchor to the robot's default configuration once.
+                    temporal_reference_objective.set_target_from(model.joint_q)
+
+                if temporal_boost_windows is not None and frame > num_frames_to_remove:
+                    weights = np.full(num_envs, self.temporal_reference_weight, dtype=np.float32)
+                    boosted = temporal_boost_windows[:, frame]
+                    weights[boosted] = float(self.temporal_reference_boost['weight'])
+                    temporal_reference_objective.set_problem_weights(weights)
 
             #start_time = time.time()
             for env in range(num_envs):

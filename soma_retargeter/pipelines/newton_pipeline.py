@@ -11,7 +11,7 @@ import soma_retargeter.assets.bvh as bvh_utils
 import soma_retargeter.utils.newton_utils as newton_utils
 import soma_retargeter.utils.io_utils as io_utils
 import soma_retargeter.pipelines.utils as pipeline_utils
-from soma_retargeter.pipelines.ik_objectives import IKSmoothJointFilter
+from soma_retargeter.pipelines.ik_objectives import IKSmoothJointFilter, IKTemporalJointReference
 from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
 from soma_retargeter.robotics.human_to_robot_scaler import HumanToRobotScaler
@@ -94,6 +94,17 @@ class NewtonPipeline:
             self.smooth_joint_filter_coord_masks = newton_utils.create_joint_coord_masks(
                 self.ik_model, smooth_joint_filter_objective_body_masks, 0.0)
 
+        # Optional temporal joint reference: a weak prior toward the previous
+        # frame's solution on selected coordinates, keeping flip-prone joint
+        # decompositions on a consistent branch. Inspired by the ROBOTIS
+        # AI Sapiens fork.
+        self.temporal_reference_weight = retargeter_config.get('temporal_joint_reference_weight', 0.0)
+        self.temporal_reference_coord_masks = None
+        temporal_reference_body_masks = retargeter_config.get('temporal_joint_reference_body_masks', None)
+        if temporal_reference_body_masks is not None:
+            self.temporal_reference_coord_masks = newton_utils.create_joint_coord_masks(
+                self.ik_model, temporal_reference_body_masks, 0.0)
+
         effector_names = self.human_robot_scaler.effector_names()
         self.target_effector_indices = [effector_names.index(name) for name in self.mapped_joints]
         self.feet_effector_indices = [
@@ -102,6 +113,32 @@ class NewtonPipeline:
 
         self.feet_stabilizer = FeetStabilizer(io_utils.get_config_file(retargeter_config['feet_stabilizer_config']))
         self.joint_limit_clamper = JointLimitClamper(self.ik_model)
+
+        # Optional limb reach projection: clamp effector targets to the robot's
+        # reachable sphere before the IK ever sees them, so short limbs do not
+        # thrash against their reach boundary. Inspired by the ROBOTIS
+        # AI Sapiens fork's arm/leg projection.
+        self.limb_reach_chains = []
+        limb_reach_projection = retargeter_config.get('limb_reach_projection', None)
+        if limb_reach_projection is not None:
+            margin = float(limb_reach_projection.get('max_reach_margin', 0.015))
+            state = self.ik_model.state()
+            newton.eval_fk(self.ik_model, self.ik_model.joint_q, self.ik_model.joint_qd, state)
+            body_pos = state.body_q.numpy()[:, :3]
+            for chain in limb_reach_projection.get('chains', []):
+                root_i = self.mapped_joints.index(chain['root'])
+                mid_i = self.mapped_joints.index(chain['mid'])
+                tip_i = self.mapped_joints.index(chain['tip'])
+                root_b = self.mapped_body_link_pos_data[root_i][0]
+                mid_b = self.mapped_body_link_pos_data[mid_i][0]
+                tip_b = self.mapped_body_link_pos_data[tip_i][0]
+                upper_len = float(np.linalg.norm(body_pos[mid_b] - body_pos[root_b]))
+                lower_len = float(np.linalg.norm(body_pos[tip_b] - body_pos[mid_b]))
+                self.limb_reach_chains.append({
+                    'root': root_i, 'mid': mid_i, 'tip': tip_i,
+                    'mid_max': max(upper_len - margin, 0.01),
+                    'tip_max': max(upper_len + lower_len - margin, 0.02),
+                })
 
         self.initialization_pose = None
         self.num_initialization_frames = 0
@@ -147,8 +184,31 @@ class NewtonPipeline:
             self.max_frames = max(self.max_frames, buffer.num_frames)
             buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(buffer, scale_animation, offsets[i])
 
-            self.input_targets.append(buffer_effectors[:, self.target_effector_indices, :])
+            targets = buffer_effectors[:, self.target_effector_indices, :]
+            if self.limb_reach_chains:
+                targets = self._apply_limb_reach_projection(targets)
+            self.input_targets.append(targets)
             self.input_sample_rates.append(buffers[i].sample_rate)
+
+    def _apply_limb_reach_projection(self, targets):
+        """
+        Clamp per-chain effector target positions to the robot's reach.
+        ``targets`` has shape (frames, num_mapped_joints, 7); positions of the
+        mid and tip joints are pulled toward the chain root when their distance
+        exceeds the robot's segment/total reach (minus the configured margin).
+        """
+        targets = np.array(targets, copy=True)
+        for chain in self.limb_reach_chains:
+            root_p = targets[:, chain['root'], 0:3]
+            for joint_key, max_key in (('mid', 'mid_max'), ('tip', 'tip_max')):
+                idx = chain[joint_key]
+                d = targets[:, idx, 0:3] - root_p
+                dist = np.linalg.norm(d, axis=1)
+                over = dist > chain[max_key]
+                if np.any(over):
+                    scale = chain[max_key] / dist[over]
+                    targets[over, idx, 0:3] = root_p[over] + d[over] * scale[:, None]
+        return targets
 
     def execute(self):
         """
@@ -202,6 +262,16 @@ class NewtonPipeline:
         if self.smooth_joint_filter_weight > 0.0:
             ik_solver_active_objectives.append(smooth_joint_filter_objective)
 
+        temporal_reference_objective = None
+        if self.temporal_reference_weight > 0.0:
+            # Weight ramps in with the warmup frames, like the smooth filter.
+            temporal_reference_objective = IKTemporalJointReference(
+                joint_limit_lower=self.ik_model.joint_limit_lower,
+                joint_limit_upper=self.ik_model.joint_limit_upper,
+                weight=0.0,
+                coord_masks=self.temporal_reference_coord_masks)
+            ik_solver_active_objectives.append(temporal_reference_objective)
+
         ik_solver = ik.IKSolver(
             model=self.ik_model,
             n_problems=num_envs,
@@ -233,6 +303,13 @@ class NewtonPipeline:
         for frame in trange(self.max_frames, desc="[INFO] Retargeting Motions"):
             if frame <= num_frames_to_remove:
                 smooth_joint_filter_objective.set_weight(self.smooth_joint_filter_weight * (frame / float(num_frames_to_remove)))
+                if temporal_reference_objective is not None:
+                    temporal_reference_objective.set_weight(
+                        self.temporal_reference_weight * (frame / float(num_frames_to_remove)))
+
+            if temporal_reference_objective is not None:
+                # Reference is the previous frame's solution (device-to-device copy).
+                temporal_reference_objective.set_target_from(joint_q)
 
             #start_time = time.time()
             for env in range(num_envs):

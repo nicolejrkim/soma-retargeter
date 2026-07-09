@@ -6,25 +6,18 @@ from enum import IntEnum, auto
 import soma_retargeter.utils.io_utils as io_utils
 import soma_retargeter.assets.usd as usd_utils
 
+from soma_retargeter.robotics.robot_registry import RobotSpec
+
 
 class SourceType(IntEnum):
     """Enumeration of supported source model types."""
     SOMA = auto()
 
 
-class TargetType(IntEnum):
-    """Enumeration of supported target model types."""
-    UNITREE_G1 = auto()
-
 _SOURCE_TYPE_TO_STR = {
     SourceType.SOMA : "soma"
 }
 _STR_TO_SOURCE_TYPE = {s : t for t, s in _SOURCE_TYPE_TO_STR.items()}
-
-_TARGET_TYPE_TO_STR = {
-    TargetType.UNITREE_G1 : "unitree_g1"
-}
-_STR_TO_TARGET_TYPE = {s : t for t, s in _TARGET_TYPE_TO_STR.items()}
 
 
 def get_source_str_from_type(source: SourceType) -> str:
@@ -60,39 +53,6 @@ def get_source_type_from_str(source: str) -> SourceType:
         raise ValueError(f"Unknown source type: [{source}]. Allowed values: {allowed}") from None
 
 
-def get_target_str_from_type(target: TargetType) -> str:
-    """
-    Get the string name associated with a given target type.
-
-    Args:
-        target (TargetType): The target type enum value.
-
-    Returns:
-        str: The string representation of the target type.
-    """
-    return _TARGET_TYPE_TO_STR[target]
-
-
-def get_target_type_from_str(target: str) -> TargetType:
-    """
-    Convert a string to its corresponding TargetType enum value.
-
-    Args:
-        target (str): The string representation of a target.
-
-    Returns:
-        TargetType: The corresponding target type enum.
-
-    Raises:
-        ValueError: If the provided string does not correspond to a valid target type.
-    """
-    try:
-        return _STR_TO_TARGET_TYPE[target]
-    except KeyError:
-        allowed = ", ".join(_STR_TO_TARGET_TYPE.keys())
-        raise ValueError(f"Unknown target type: [{target}]. Allowed values: {allowed}") from None
-
-
 def get_source_model_mesh(source: SourceType, skeleton) -> dict:
     """
     Retrieve model mesh for a given source type.
@@ -117,28 +77,26 @@ def get_source_model_mesh(source: SourceType, skeleton) -> dict:
     raise ValueError(f"Unknown source type {source}.")
 
 
-def get_retargeter_config(source: SourceType, target: TargetType) -> dict:
+def get_retargeter_config(source: SourceType, robot_spec: RobotSpec) -> dict:
     """
-    Load the retargeter configuration between a specific source and target.
+    Load the retargeter configuration between a specific source and target robot.
 
     Args:
         source (SourceType): The source type.
-        target (TargetType): The target type.
+        robot_spec (RobotSpec): The target robot specification.
 
     Returns:
         dict: The loaded JSON configuration for the retargeter.
 
     Raises:
-        ValueError: If the source or target type is not supported.
+        ValueError: If the robot has no retargeter config registered for the source type.
     """
-    if target != TargetType.UNITREE_G1:
-        raise ValueError(f"Unknown target type [{target}].")
-
-    if source == SourceType.SOMA:
-        filename = 'soma_to_g1_retargeter_config.json'
-    else:
-        raise ValueError(f"Unknown source type [{source}] for target [{target}].")
+    source_name = get_source_str_from_type(source)
+    try:
+        filename = robot_spec.retargeter_configs[source_name]
+    except KeyError:
+        raise ValueError(f"Unknown source type [{source_name}] for target [{robot_spec.name}].") from None
 
     return io_utils.load_json(
-        io_utils.get_config_file('unitree_g1', filename)
+        io_utils.get_config_file(robot_spec.config_dir, filename)
     )

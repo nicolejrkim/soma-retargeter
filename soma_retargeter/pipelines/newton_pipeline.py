@@ -15,6 +15,7 @@ from soma_retargeter.pipelines.ik_objectives import IKSmoothJointFilter
 from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
 from soma_retargeter.robotics.human_to_robot_scaler import HumanToRobotScaler
+from soma_retargeter.robotics import robot_registry
 from soma_retargeter.robotics.csv_animation_buffer import CSVAnimationBuffer
 from soma_retargeter.pipelines.feet_stabilizer import FeetStabilizer
 from soma_retargeter.pipelines.joint_limit_clamper import JointLimitClamper
@@ -31,9 +32,9 @@ class NewtonPipeline:
     Newton-based motion retargeting pipeline.
 
     This pipeline retargets human motion captured on a common skeleton
-    to a target robot (currently Unitree G1) using inverse kinematics (IK),
-    custom objectives, and optional post-processing filters such as
-    joint limit clamping and feet stabilization.
+    to a target robot registered in the robot registry (e.g. Unitree G1)
+    using inverse kinematics (IK), custom objectives, and optional
+    post-processing filters such as joint limit clamping and feet stabilization.
     """
     def __init__(self, skeleton: Skeleton, source_type='soma', robot_type='unitree_g1', retarget_config: dict = None):
         """
@@ -42,22 +43,22 @@ class NewtonPipeline:
         Args:
             skeleton: Common skeleton definition used by the input clips to be retargeted.
             source_type: Source skeleton type name. Currently only "soma" is supported.
-            robot_type: Target robot type name. Currently only "unitree_g1" is supported.
+            robot_type: Target robot type name. Must be registered in the robot registry.
             retarget_config: Optional configuration dictionary. If None, a
                 configuration is loaded from disk based on the source/target
                 types.
 
         Raises:
-            ValueError: If the target robot type is not supported.
+            ValueError: If the target robot type is not registered.
         """
         self.source_type = pipeline_utils.get_source_type_from_str(source_type)
-        self.target_type = pipeline_utils.get_target_type_from_str(robot_type)
+        self.robot_spec = robot_registry.get_robot_spec(robot_type)
         self.input_targets = []
         self.input_sample_rates = []
         self.max_frames = -1
 
         if retarget_config is None:
-            retargeter_config = pipeline_utils.get_retargeter_config(self.source_type, self.target_type)
+            retargeter_config = pipeline_utils.get_retargeter_config(self.source_type, self.robot_spec)
         else:
             retargeter_config = retarget_config
 
@@ -69,53 +70,48 @@ class NewtonPipeline:
         self.smooth_joint_filter_coord_masks = None
         self.joint_limit_clamper = None
 
-        if (self.target_type == pipeline_utils.TargetType.UNITREE_G1):
-            self.robot_builder = newton.ModelBuilder()
-            self.robot_builder.add_mjcf(
-                newton.utils.download_asset("unitree_g1") / "mjcf/g1_29dof_rev_1_0.xml")
+        self.robot_builder = self.robot_spec.create_builder()
 
-            self.human_robot_scaler = HumanToRobotScaler(
-                skeleton, retargeter_config['model_height'], io_utils.get_config_file(retargeter_config['human_robot_scaler_config']))
+        self.human_robot_scaler = HumanToRobotScaler(
+            skeleton, retargeter_config['model_height'], io_utils.get_config_file(retargeter_config['human_robot_scaler_config']))
 
-            self.num_body_count = self.robot_builder.body_count
-            self.num_dofs = self.robot_builder.joint_dof_count
-            self.ik_model = self._build_model(1)
+        self.num_body_count = self.robot_builder.body_count
+        self.num_dofs = self.robot_builder.joint_dof_count
+        self.ik_model = self._build_model(1)
 
-            (
-                self.mapped_joints,
-                self.mapped_joint_indices,
-                self.mapped_body_link_pos_data,
-                self.mapped_body_link_rot_data
-            ) = self._build_target_mapping(
-                self.ik_model,
-                self.human_robot_scaler.skeleton,
-                retargeter_config)
+        (
+            self.mapped_joints,
+            self.mapped_joint_indices,
+            self.mapped_body_link_pos_data,
+            self.mapped_body_link_rot_data
+        ) = self._build_target_mapping(
+            self.ik_model,
+            self.human_robot_scaler.skeleton,
+            retargeter_config)
 
-            smooth_joint_filter_objective_body_masks = retargeter_config.get('smooth_joint_filter_objective_body_masks', None)
-            if smooth_joint_filter_objective_body_masks is not None:
-                self.smooth_joint_filter_coord_masks = newton_utils.create_joint_coord_masks(
-                    self.ik_model, smooth_joint_filter_objective_body_masks, 0.0)
+        smooth_joint_filter_objective_body_masks = retargeter_config.get('smooth_joint_filter_objective_body_masks', None)
+        if smooth_joint_filter_objective_body_masks is not None:
+            self.smooth_joint_filter_coord_masks = newton_utils.create_joint_coord_masks(
+                self.ik_model, smooth_joint_filter_objective_body_masks, 0.0)
 
-            effector_names = self.human_robot_scaler.effector_names()
-            self.target_effector_indices = [effector_names.index(name) for name in self.mapped_joints]
-            self.feet_effector_indices = [
-                self.mapped_joints.index("LeftFoot"),
-                self.mapped_joints.index("RightFoot")]
+        effector_names = self.human_robot_scaler.effector_names()
+        self.target_effector_indices = [effector_names.index(name) for name in self.mapped_joints]
+        self.feet_effector_indices = [
+            self.mapped_joints.index("LeftFoot"),
+            self.mapped_joints.index("RightFoot")]
 
-            self.feet_stabilizer = FeetStabilizer(io_utils.get_config_file(retargeter_config['feet_stabilizer_config']))
-            self.joint_limit_clamper = JointLimitClamper(self.ik_model)
+        self.feet_stabilizer = FeetStabilizer(io_utils.get_config_file(retargeter_config['feet_stabilizer_config']))
+        self.joint_limit_clamper = JointLimitClamper(self.ik_model)
 
-            self.initialization_pose = None
-            self.num_initialization_frames = 0
-            self.num_stabilization_frames = 0
-            if (retargeter_config['initialization_pose']):
-                init_skel, init_anim = bvh_utils.load_bvh(io_utils.get_config_file(retargeter_config['initialization_pose']))
-                self.initialization_pose = SkeletonInstance(init_skel, [0, 0, 0], wp.transform_identity())
-                self.initialization_pose.set_local_transforms(init_anim.get_local_transforms(0))
-                self.num_initialization_frames = retargeter_config.get('num_initialization_frames', _DEFAULT_NUM_INITIALIZATION_FRAMES)
-                self.num_stabilization_frames = retargeter_config.get('num_stabilization_frames', _DEFAULT_NUM_STABILIZATION_FRAMES)
-        else:
-            raise ValueError("Unsupported robot type.")
+        self.initialization_pose = None
+        self.num_initialization_frames = 0
+        self.num_stabilization_frames = 0
+        if (retargeter_config['initialization_pose']):
+            init_skel, init_anim = bvh_utils.load_bvh(io_utils.get_config_file(retargeter_config['initialization_pose']))
+            self.initialization_pose = SkeletonInstance(init_skel, [0, 0, 0], wp.transform_identity())
+            self.initialization_pose.set_local_transforms(init_anim.get_local_transforms(0))
+            self.num_initialization_frames = retargeter_config.get('num_initialization_frames', _DEFAULT_NUM_INITIALIZATION_FRAMES)
+            self.num_stabilization_frames = retargeter_config.get('num_stabilization_frames', _DEFAULT_NUM_STABILIZATION_FRAMES)
 
     def clear(self):
         """
@@ -176,7 +172,7 @@ class NewtonPipeline:
 
         print("[INFO] Newton Retargeter Settings: ")
         print(f"[INFO]\t  Source Skeleton Type: {pipeline_utils.get_source_str_from_type(self.source_type)}")
-        print(f"[INFO]\t  Target Robot Type: {pipeline_utils.get_target_str_from_type(self.target_type)}")
+        print(f"[INFO]\t  Target Robot Type: {self.robot_spec.name}")
         print(f"[INFO]\t  Post-Processing Enabled: {self.post_processing_enabled}")
         print(f"[INFO]\t  Initialization Pose: {self.initialization_pose is not None}")
         print(f"[INFO]\t  Initialization Frame Count: {self.num_initialization_frames}")

@@ -7,7 +7,12 @@ from typing import Dict, List
 
 import newton
 
-from soma_retargeter.assets.csv import RobotCSVConfig, UnitreeG129DOF_CSVConfig, UnitreeH1_2_27DOF_CSVConfig
+from soma_retargeter.assets.csv import (
+    RobotCSVConfig,
+    UnitreeG129DOF_CSVConfig,
+    UnitreeH1_2_27DOF_CSVConfig,
+    UnitreeR1_24DOF_CSVConfig,
+)
 
 
 @dataclass(frozen=True)
@@ -100,6 +105,14 @@ _ROBOT_REGISTRY: Dict[str, RobotSpec] = {
         config_dir="unitree_h1_2",
         retargeter_configs={"soma": "soma_to_h1_2_retargeter_config.json"},
         csv_config=UnitreeH1_2_27DOF_CSVConfig(),
+    ),
+    "unitree_r1": RobotSpec(
+        name="unitree_r1",
+        asset_folder="assets/robots/unitree_r1",
+        model_file="mjcf/r1_24dof.xml",
+        config_dir="unitree_r1",
+        retargeter_configs={"soma": "soma_to_r1_retargeter_config.json"},
+        csv_config=UnitreeR1_24DOF_CSVConfig(),
     ),
 }
 

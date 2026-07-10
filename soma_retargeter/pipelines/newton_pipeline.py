@@ -98,6 +98,13 @@ class NewtonPipeline:
         # frame's solution on selected coordinates, keeping flip-prone joint
         # decompositions on a consistent branch. Inspired by the ROBOTIS
         # AI Sapiens fork.
+        # Optional trunk-first staged solve: stage 1 runs a few iterations with
+        # per-joint weight scales (typically trunk over-weighted, end effectors
+        # nearly off) to settle the torso and pick a good solution basin,
+        # stage 2 runs the normal solve. Inspired by the ROBOTIS AI Sapiens
+        # direct-body-chain staged solver.
+        self.staged_solve = retargeter_config.get('staged_solve', None)
+
         self.temporal_reference_weight = retargeter_config.get('temporal_joint_reference_weight', 0.0)
         self.temporal_reference_mode = retargeter_config.get('temporal_joint_reference_mode', 'previous')
         if self.temporal_reference_mode not in ('previous', 'neutral'):
@@ -294,11 +301,55 @@ class NewtonPipeline:
         ik_solver.reset()
 
         graph_capture = None
+        staged_graphs = None
 
         def single_step():
             ik_solver.step(joint_q, joint_q, iterations=self.ik_iterations)
 
-        if wp.get_device().is_cuda:
+        def _stage_iterations():
+            return (
+                max(1, int(self.staged_solve.get('stage1_iterations', max(1, self.ik_iterations // 3)))),
+                max(1, int(self.staged_solve.get('stage2_iterations', self.ik_iterations))),
+            )
+
+        def _apply_stage1_scales():
+            base = [(o, o.weight) for o in (*position_objectives, *rotation_objectives)]
+            pos_scales = self.staged_solve.get('stage1_position_scales', {})
+            rot_scales = self.staged_solve.get('stage1_rotation_scales', {})
+            pos_default = float(self.staged_solve.get('stage1_default_position_scale', 1.0))
+            rot_default = float(self.staged_solve.get('stage1_default_rotation_scale', 1.0))
+            for i, joint in enumerate(self.mapped_joints):
+                position_objectives[i].weight = position_objectives[i].weight * float(pos_scales.get(joint, pos_default))
+                rotation_objectives[i].weight = rotation_objectives[i].weight * float(rot_scales.get(joint, rot_default))
+            return base
+
+        def _restore_weights(base):
+            for o, w in base:
+                o.weight = w
+
+        if self.staged_solve is not None:
+            stage1_iters, stage2_iters = _stage_iterations()
+            if wp.get_device().is_cuda:
+                # Warm-up eager solve so all solver buffers exist, then capture
+                # one graph per stage with that stage's weights baked in (the
+                # stage scales are frame-constant config values).
+                q_backup = joint_q.numpy().copy()
+                base_weights = _apply_stage1_scales()
+                ik_solver.step(joint_q, joint_q, iterations=stage1_iters)
+                with wp.ScopedCapture() as cap1:
+                    ik_solver.step(joint_q, joint_q, iterations=stage1_iters)
+                _restore_weights(base_weights)
+                ik_solver.step(joint_q, joint_q, iterations=stage2_iters)
+                with wp.ScopedCapture() as cap2:
+                    ik_solver.step(joint_q, joint_q, iterations=stage2_iters)
+                staged_graphs = (cap1.graph, cap2.graph)
+                wp.copy(joint_q, wp.array(q_backup, dtype=wp.float32))
+            else:
+                base_weights = _apply_stage1_scales()
+                ik_solver.step(joint_q, joint_q, iterations=stage1_iters)
+                _restore_weights(base_weights)
+                ik_solver.step(joint_q, joint_q, iterations=stage2_iters)
+        elif wp.get_device().is_cuda:
             with wp.ScopedCapture() as cap:
                 single_step()
             graph_capture = cap.graph
@@ -355,7 +406,16 @@ class NewtonPipeline:
                     position_objectives[i].set_target_position(env, wp.vec3(*target[0:3]))
                     rotation_objectives[i].set_target_rotation(env, wp.quat(*target[3:7]))
 
-            if graph_capture is not None:
+            if staged_graphs is not None:
+                wp.capture_launch(staged_graphs[0])
+                wp.capture_launch(staged_graphs[1])
+            elif self.staged_solve is not None:
+                stage1_iters, stage2_iters = _stage_iterations()
+                base_weights = _apply_stage1_scales()
+                ik_solver.step(joint_q, joint_q, iterations=stage1_iters)
+                _restore_weights(base_weights)
+                ik_solver.step(joint_q, joint_q, iterations=stage2_iters)
+            elif graph_capture is not None:
                 wp.capture_launch(graph_capture)
             else:
                 single_step()

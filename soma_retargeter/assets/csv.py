@@ -10,6 +10,7 @@ import warp as wp
 
 from scipy.spatial.transform import Rotation as R
 from soma_retargeter.robotics.csv_animation_buffer import CSVAnimationBuffer
+from soma_retargeter.assets.ai_sapiens import AI_SAPIENS_JOINT_NAMES
 
 
 class RobotCSVConfig(Protocol):
@@ -70,6 +71,18 @@ class EulerRootRobotCSVConfig:
         row.extend(np.rad2deg(anim_row[7:]))
 
         return row
+
+
+@dataclass
+class AISapiens23DOF_CSVConfig(EulerRootRobotCSVConfig):
+    """AI Sapiens native 23 hinge-joint CSV layout."""
+    name: str = "ai_sapiens_23dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        *[f"{joint_name}_dof" for joint_name in AI_SAPIENS_JOINT_NAMES],
+    ]
 
 
 @dataclass

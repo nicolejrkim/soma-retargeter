@@ -172,6 +172,7 @@ class FeetStabilizer:
     def _load_config(self, config: str):
         data = io_utils.load_json(config)
         self.robot_type = data['robot_type']
+        self.robot_mjcf = data.get('robot_mjcf')
         self.ik_iterations = data['ik_iterations']
         self.joint_limit_weight = data['joint_limit_weight']
 

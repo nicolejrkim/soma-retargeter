@@ -16,12 +16,12 @@
         "RightToe": 1.0255,
         "LeftToeBase": 1.0255,
         "RightToeBase": 1.0255,
-        "LeftArm": 1.2932,
-        "RightArm": 1.2932,
-        "LeftForeArm": 1.2932,
-        "RightForeArm": 1.2932,
-        "LeftHand": 1.2932,
-        "RightHand": 1.2932
+        "LeftArm": 1.08,
+        "RightArm": 1.08,
+        "LeftForeArm": 1.08,
+        "RightForeArm": 1.08,
+        "LeftHand": 1.08,
+        "RightHand": 1.08
     },
     "joint_parents": {
         "Hips": "",

@@ -453,9 +453,11 @@ def _arm_bend_angle_residuals(
 
     v0 = root - mid
     v1 = end - mid
-    denom = wp.max(wp.length(v0) * wp.length(v1), 1.0e-8)
-    c = wp.clamp(wp.dot(v0, v1) / denom, -1.0, 1.0)
-    theta = wp.acos(c)
+    # atan2 form: bounded gradients near the straight (theta=pi) configuration,
+    # where acos(clamp(...)) autodiffs to zero/NaN and the objective goes dead.
+    cr = wp.cross(v0, v1)
+    sin_term = wp.sqrt(wp.dot(cr, cr) + 1.0e-10)
+    theta = wp.atan2(sin_term, wp.dot(v0, v1))
 
     residuals[row, start_idx + chain_idx] = (
         (theta - target_angles[base, chain_idx])

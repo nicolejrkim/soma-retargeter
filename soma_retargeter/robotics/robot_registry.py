@@ -14,6 +14,7 @@ from soma_retargeter.assets.csv import (
     UnitreeG129DOF_CSVConfig,
     UnitreeH1_2_27DOF_CSVConfig,
     UnitreeR1_24DOF_CSVConfig,
+    BoosterT1_29DOF_CSVConfig,
 )
 
 
@@ -132,6 +133,14 @@ _ROBOT_REGISTRY: Dict[str, RobotSpec] = {
         config_dir="unitree_r1",
         retargeter_configs={"soma": "soma_to_r1_retargeter_config.json"},
         csv_config=UnitreeR1_24DOF_CSVConfig(),
+    ),
+    "booster_t1_29dof": RobotSpec(
+        name="booster_t1_29dof",
+        asset_folder="assets/robots/booster_t1_29dof",
+        model_file="mjcf/t1_29dof.xml",
+        config_dir="booster_t1_29dof",
+        retargeter_configs={"soma": "soma_to_t1_29dof_retargeter_config.json"},
+        csv_config=BoosterT1_29DOF_CSVConfig(),
     ),
     "booster_t1": RobotSpec(
         name="booster_t1",

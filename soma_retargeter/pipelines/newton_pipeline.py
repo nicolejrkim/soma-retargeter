@@ -564,9 +564,8 @@ class NewtonPipeline:
         )
         self.ai_sapiens_capsule_proxy_barrier_data = []
         self.ai_sapiens_bilateral_arm_bend_data = []
-        self.ai_sapiens_limb_bend_angle_objective_enabled = (
-            self.robot_spec.name == "ai_sapiens"
-            and bool(retargeter_config.get("enable_ai_sapiens_limb_bend_angle_objective", False))
+        self.ai_sapiens_limb_bend_angle_objective_enabled = bool(
+            retargeter_config.get("enable_ai_sapiens_limb_bend_angle_objective", False)
         )
         self.ai_sapiens_limb_bend_angle_weight = float(
             retargeter_config.get("ai_sapiens_limb_bend_angle_weight", 0.0)
@@ -715,9 +714,8 @@ class NewtonPipeline:
         self.input_capsule_proxy_barrier_active_masks = []
         self.input_capsule_proxy_barrier_trace = []
         self.input_risk_window_objective_scales = []
-        self.ai_sapiens_arm_segment_direction_enabled = (
-            self.robot_spec.name == "ai_sapiens"
-            and bool(retargeter_config.get("enable_ai_sapiens_arm_segment_direction_objective", False))
+        self.ai_sapiens_arm_segment_direction_enabled = bool(
+            retargeter_config.get("enable_ai_sapiens_arm_segment_direction_objective", False)
         )
         self.ai_sapiens_arm_upper_direction_weight = float(
             retargeter_config.get("ai_sapiens_arm_upper_direction_weight", 0.0)
@@ -909,18 +907,22 @@ class NewtonPipeline:
             {},
         )
         self.ai_sapiens_output_joint_safety_margin_specs = []
-        self.ai_sapiens_output_joint_step_limit_enabled = (
-            self.robot_spec.name == "ai_sapiens"
-            and bool(retargeter_config.get("enable_ai_sapiens_output_joint_step_limit", False))
+        self.ai_sapiens_output_joint_step_limit_enabled = bool(
+            retargeter_config.get("enable_ai_sapiens_output_joint_step_limit", False)
         )
         self.ai_sapiens_output_joint_step_limits_rad = retargeter_config.get(
             "ai_sapiens_output_joint_step_limits_rad",
             {},
         )
         self.ai_sapiens_output_joint_step_limit_specs = []
-        self.ai_sapiens_root_orientation_step_limit_enabled = (
-            self.robot_spec.name == "ai_sapiens"
-            and bool(retargeter_config.get("enable_ai_sapiens_root_orientation_step_limit", False))
+        self.ai_sapiens_output_joint_step_limit_start_after_warmup = bool(
+            retargeter_config.get("ai_sapiens_output_joint_step_limit_start_after_warmup", True)
+        )
+        self.ai_sapiens_root_orientation_step_limit_enabled = bool(
+            retargeter_config.get("enable_ai_sapiens_root_orientation_step_limit", False)
+        )
+        self.ai_sapiens_root_orientation_step_limit_start_after_warmup = bool(
+            retargeter_config.get("ai_sapiens_root_orientation_step_limit_start_after_warmup", True)
         )
         self.ai_sapiens_root_orientation_max_step_deg = float(
             retargeter_config.get("ai_sapiens_root_orientation_max_step_deg", 0.0)
@@ -1481,6 +1483,12 @@ class NewtonPipeline:
             buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(buffer, scale_animation, offsets[i])
             targets = np.asarray(buffer_effectors[:, self.target_effector_indices, :], dtype=np.float32).copy()
             target_raw_scaled = targets.copy()
+            # unscaled human positions for angle-based objectives: the scaled/mapped
+            # targets carry robot-proportion offsets that distort limb interior angles
+            raw_bend_targets = None
+            if self.ai_sapiens_limb_bend_angle_objective_enabled:
+                raw_effectors = self.human_robot_scaler.compute_effectors_from_buffer(buffer, False, offsets[i])
+                raw_bend_targets = np.asarray(raw_effectors[:, self.target_effector_indices, :], dtype=np.float32).copy()
             body_frame_summary = {
                 "enabled": bool(self.ai_sapiens_source_body_frame_preservation_enabled),
                 "corrected_frame_count": 0,
@@ -1685,6 +1693,13 @@ class NewtonPipeline:
                         offsets[i],
                     )
                 )
+                print(
+                    "[INFO]\t  Arm segment direction: "
+                    f"skipped={arm_segment_direction_summary.get('skipped')} "
+                    f"reason={arm_segment_direction_summary.get('skip_reason')} "
+                    f"chains={arm_segment_direction_summary.get('chain_count')} "
+                    f"corrected={arm_segment_direction_summary.get('corrected_chain_count')}"
+                )
                 if self.ai_sapiens_arm_projection_enabled:
                     targets, arm_projection_post_direction_summary = (
                         self._apply_ai_sapiens_arm_projection(
@@ -1769,7 +1784,9 @@ class NewtonPipeline:
                 limb_bend_active_masks,
                 limb_bend_trace,
                 limb_bend_summary,
-            ) = self._compute_ai_sapiens_limb_bend_angle_objective_targets(targets)
+            ) = self._compute_ai_sapiens_limb_bend_angle_objective_targets(
+                raw_bend_targets if raw_bend_targets is not None else targets
+            )
             (
                 limb_plane_normal_targets,
                 limb_plane_normal_active_masks,
@@ -2030,12 +2047,20 @@ class NewtonPipeline:
                 f"(trigger={self.ai_sapiens_sparse_wrist_roll_trigger_deg:.3f} deg, "
                 f"weights={self.ai_sapiens_sparse_wrist_roll_weights})"
             )
-        if self.robot_spec.name == "ai_sapiens":
+        if self.ai_sapiens_root_orientation_step_limit_enabled or self.ai_sapiens_output_joint_step_limit_enabled:
             print(
-                "[INFO]\t  AI Sapiens Root Orientation Step Limit: "
+                "[INFO]\t  Root Orientation Step Limit: "
                 f"{self.ai_sapiens_root_orientation_step_limit_enabled} "
-                f"({self.ai_sapiens_root_orientation_max_step_deg:.3f} deg)"
+                f"({self.ai_sapiens_root_orientation_max_step_deg:.3f} deg, "
+                f"start_after_warmup={self.ai_sapiens_root_orientation_step_limit_start_after_warmup})"
             )
+            print(
+                "[INFO]\t  Output Joint Step Limit: "
+                f"{self.ai_sapiens_output_joint_step_limit_enabled} "
+                f"({len(self.ai_sapiens_output_joint_step_limits_rad)} joints, "
+                f"start_after_warmup={self.ai_sapiens_output_joint_step_limit_start_after_warmup})"
+            )
+        if self.robot_spec.name == "ai_sapiens":
             print(
                 "[INFO]\t  AI Sapiens Direct Body Chain Staged Solver: "
                 f"{self.ai_sapiens_direct_body_chain_staged_solver_enabled} "
@@ -3492,7 +3517,10 @@ class NewtonPipeline:
             if solver_trace_arrays is not None:
                 solver_trace_arrays["q_after_output_safety_margin"][frame] = data
 
-            if self.ai_sapiens_output_joint_step_limit_specs:
+            if self.ai_sapiens_output_joint_step_limit_specs and not (
+                self.ai_sapiens_output_joint_step_limit_start_after_warmup
+                and frame <= num_frames_to_remove
+            ):
                 previous_data = np.full_like(data, np.nan, dtype=np.float32)
                 for env in range(num_envs):
                     if frame <= 0:
@@ -3513,7 +3541,14 @@ class NewtonPipeline:
             if solver_trace_arrays is not None:
                 solver_trace_arrays["q_after_output_joint_step_limit"][frame] = data
 
-            if self.ai_sapiens_root_orientation_step_limit_enabled and self.ai_sapiens_root_orientation_max_step_rad > 0.0:
+            if (
+                self.ai_sapiens_root_orientation_step_limit_enabled
+                and self.ai_sapiens_root_orientation_max_step_rad > 0.0
+                and not (
+                    self.ai_sapiens_root_orientation_step_limit_start_after_warmup
+                    and frame <= num_frames_to_remove
+                )
+            ):
                 previous_data = np.full_like(data, np.nan, dtype=np.float32)
                 for env in range(num_envs):
                     if frame <= 0:
@@ -3667,12 +3702,25 @@ class NewtonPipeline:
                 "root_quatW",
                 *ai_sapiens_assets.AI_SAPIENS_JOINT_NAMES,
             ]
-        return []
+        if self.robot_builder is None or self.ik_model is None:
+            return []
+        # generic schema from the robot builder: one entry per q coordinate
+        labels = [
+            newton_utils.get_name_from_label(label)
+            for label in self.robot_builder.joint_label
+        ]
+        q_starts = self.ik_model.joint_q_start.numpy()
+        schema = [""] * int(self.ik_model.joint_coord_count)
+        for joint_idx, name in enumerate(labels):
+            q0 = int(q_starts[joint_idx])
+            q1 = int(q_starts[joint_idx + 1])
+            for k in range(q0, q1):
+                schema[k] = name if (q1 - q0) == 1 else f"{name}_{k - q0}"
+        return schema
 
     def _apply_ai_sapiens_ik_joint_safety_margins_to_model(self):
         if (
-            self.robot_spec.name != "ai_sapiens"
-            or not self.ai_sapiens_ik_joint_safety_margins_rad
+            not self.ai_sapiens_ik_joint_safety_margins_rad
             or self.ik_model is None
         ):
             return
@@ -3839,8 +3887,7 @@ class NewtonPipeline:
 
     def _build_ai_sapiens_output_joint_step_limit_specs(self):
         if (
-            self.robot_spec.name != "ai_sapiens"
-            or not self.ai_sapiens_output_joint_step_limit_enabled
+            not self.ai_sapiens_output_joint_step_limit_enabled
             or not self.ai_sapiens_output_joint_step_limits_rad
         ):
             return []

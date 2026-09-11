@@ -171,6 +171,27 @@ class BoosterT1_29DOF_CSVConfig(EulerRootRobotCSVConfig):
 
 
 @dataclass
+class BoosterK1_22DOF_CSVConfig(EulerRootRobotCSVConfig):
+    """Booster K1 (22 dof: head 2, arms 4x2, legs 6x2; no waist). Root pose is
+    the trunk body. Column names are the official booster_assets joint names
+    (aa-prefixed head/shoulder-pitch joints included) in model joint order."""
+    name: str = "booster_k1_22dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "aahead_yaw_joint_dof", "aahead_pitch_joint_dof",
+        "aaleft_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
+        "left_elbow_pitch_joint_dof", "left_elbow_yaw_joint_dof",
+        "aaright_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
+        "right_elbow_pitch_joint_dof", "right_elbow_yaw_joint_dof",
+        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof",
+        "left_knee_pitch_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
+        "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof",
+        "right_knee_pitch_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof"]
+
+
+@dataclass
 class UnitreeH1_2_27DOF_CSVConfig(EulerRootRobotCSVConfig):
     name: str = "unitree_h1_2_27dof"
     csv_header: ClassVar[List[str]] = [

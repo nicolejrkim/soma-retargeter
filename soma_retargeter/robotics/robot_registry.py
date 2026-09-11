@@ -9,6 +9,7 @@ import newton
 
 from soma_retargeter.assets.csv import (
     AISapiens23DOF_CSVConfig,
+    BoosterK1_22DOF_CSVConfig,
     BoosterT1_23DOF_CSVConfig,
     RobotCSVConfig,
     UnitreeG129DOF_CSVConfig,
@@ -149,6 +150,14 @@ _ROBOT_REGISTRY: Dict[str, RobotSpec] = {
         config_dir="booster_t1",
         retargeter_configs={"soma": "soma_to_t1_retargeter_config.json"},
         csv_config=BoosterT1_23DOF_CSVConfig(),
+    ),
+    "booster_k1": RobotSpec(
+        name="booster_k1",
+        asset_folder="assets/robots/booster_k1",
+        model_file="mjcf/K1_22dof.xml",
+        config_dir="booster_k1",
+        retargeter_configs={"soma": "soma_to_k1_retargeter_config.json"},
+        csv_config=BoosterK1_22DOF_CSVConfig(),
     ),
     "ai_sapiens": RobotSpec(
         name="ai_sapiens",

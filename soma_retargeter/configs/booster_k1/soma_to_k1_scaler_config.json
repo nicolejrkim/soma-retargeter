@@ -217,81 +217,90 @@
         "LeftArm": [
             [
                 0.0,
-                0.0,
-                0.0
+                -0.055,
+                -0.12
             ],
             [
-                -0.7298,
-                -0.6774,
-                -0.037,
-                -0.0846
+                0.5742,
+                0.7537,
+                -0.1332,
+                0.2908
             ]
         ],
         "LeftForeArm": [
             [
                 0.0,
-                0.0,
-                0.0
+                -0.055,
+                -0.12
             ],
             [
-                -1.0,
-                0.0004,
-                0.0001,
-                -0.0
+                0.4866,
+                0.8129,
+                -0.3061,
+                0.0929
             ]
         ],
         "LeftHand": [
             [
                 0.0,
-                0.0,
-                0.0
+                -0.055,
+                -0.12
             ],
             [
-                -1.0,
-                0.0004,
-                0.0001,
-                -0.0
+                0.4866,
+                0.8129,
+                -0.3061,
+                0.0929
             ]
         ],
         "RightArm": [
             [
                 0.0,
-                0.0,
-                0.0
+                0.055,
+                -0.12
             ],
             [
-                0.0348,
-                -0.0867,
-                -0.7277,
-                0.6795
+                0.0841,
+                0.1772,
+                0.6372,
+                -0.7453
             ]
         ],
         "RightForeArm": [
             [
                 0.0,
-                0.0,
-                0.0
+                0.055,
+                -0.12
             ],
             [
-                -0.0001,
-                -0.0,
-                -1.0,
-                -0.0004
+                0.1818,
+                0.0735,
+                0.5628,
+                -0.803
             ]
         ],
         "RightHand": [
             [
                 0.0,
-                0.0,
-                0.0
+                0.055,
+                -0.12
             ],
             [
-                -0.0001,
-                -0.0,
-                -1.0,
-                -0.0004
+                0.1818,
+                0.0735,
+                0.5628,
+                -0.803
             ]
         ]
     },
-    "position_offset_mode": "local_rotated"
+    "position_offset_mode": "local_rotated",
+    "position_offset_mode_overrides": {
+        "LeftArm": "root_rotated",
+        "LeftForeArm": "root_rotated",
+        "LeftHand": "root_rotated",
+        "RightArm": "root_rotated",
+        "RightForeArm": "root_rotated",
+        "RightHand": "root_rotated"
+    },
+    "_provenance": "2026-09-12 arm re-offsetting: root-frame arm-chain position offsets (0, -/+0.055, -0.12) in root_rotated mode (the scaler builds targets root-relative, so K1's low shoulder needs the shift) + Arm/ForeArm/Hand quats derived from a hanging-arm correspondence (human wave_R_001__A428 frame 424 <-> K1 shoulder_roll -/+1.57, elbow matched); was: T1 quats + FK-scaled T1 offsets. Validated on floss/walk/wave vs the SOMA human (abduction 33/25/23 vs 33/26/23-28 deg)."
 }

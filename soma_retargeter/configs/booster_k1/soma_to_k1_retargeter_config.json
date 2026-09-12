@@ -130,7 +130,9 @@
     ],
     "ai_sapiens_ik_joint_safety_margins_rad": {
         "left_elbow_yaw_joint": 0.03,
-        "right_elbow_yaw_joint": 0.03
+        "right_elbow_yaw_joint": 0.03,
+        "left_shoulder_roll_joint": 0.05,
+        "right_shoulder_roll_joint": 0.05
     },
     "neutral_reference_weight": 0.0,
     "neutral_reference_objective_body_masks": {

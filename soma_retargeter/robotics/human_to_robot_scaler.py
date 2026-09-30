@@ -18,25 +18,36 @@ class HumanToRobotScaler:
         config = io_utils.load_json(config_file)
         self.robot_type = config['robot_type']
         self.skeleton = skeleton
-        position_offset_mode = config.get("position_offset_mode", "local_rotated")
-        if position_offset_mode not in ("local_rotated", "world", "root_rotated"):
-            raise ValueError(
-                "position_offset_mode must be one of: local_rotated, world, root_rotated"
-            )
-        self.position_offset_mode = {
+        _OFFSET_MODES = {
             "local_rotated": 0,
             "world": 1,
             "root_rotated": 2,
-        }[position_offset_mode]
+            "joint_yaw_rotated": 3,
+        }
+        position_offset_mode = config.get("position_offset_mode", "local_rotated")
+        if position_offset_mode not in _OFFSET_MODES:
+            raise ValueError(
+                "position_offset_mode must be one of: " + ", ".join(_OFFSET_MODES)
+            )
+        self.position_offset_mode = _OFFSET_MODES[position_offset_mode]
+        self.position_offset_mode_overrides = {}
+        for name, mode in dict(config.get("position_offset_mode_overrides", {})).items():
+            if mode not in _OFFSET_MODES:
+                raise ValueError(
+                    f"position_offset_mode_overrides[{name}] must be one of: "
+                    + ", ".join(_OFFSET_MODES))
+            self.position_offset_mode_overrides[name] = _OFFSET_MODES[mode]
         self.position_offset_yaw = wp.quat_from_axis_angle(
             wp.vec3(0.0, 0.0, 1.0),
             wp.radians(float(config.get("position_offset_yaw_deg", 0.0))),
         )
-        # Default mode with no yaw is mathematically the upstream formula; use
-        # the byte-exact upstream kernel there (identical FP op ordering).
+        # Default mode with no yaw and no per-joint overrides is mathematically
+        # the upstream formula; use the byte-exact upstream kernel there
+        # (identical FP op ordering).
         self.use_upstream_offset_path = (
             self.position_offset_mode == 0
             and abs(float(config.get("position_offset_yaw_deg", 0.0))) == 0.0
+            and not self.position_offset_mode_overrides
         )
 
         ratio = human_height / config['human_height_assumption']
@@ -59,6 +70,9 @@ class HumanToRobotScaler:
         self.mapped_joint_indices = wp.array([self.skeleton.joint_index(name) for name in self.mapped_joints], dtype=wp.int32)
         self.mapped_joint_scales = wp.array([joint_scales[name] for name in self.mapped_joints], dtype=wp.float32)
         self.mapped_joint_offsets = wp.array([joint_offsets[name] for name in self.mapped_joints], dtype=wp.transform)
+        self.mapped_joint_offset_modes = wp.array(
+            [self.position_offset_mode_overrides.get(name, self.position_offset_mode)
+             for name in self.mapped_joints], dtype=wp.int32)
 
         joint_parents = config['joint_parents']
         self.mapped_joint_parents = [
@@ -114,7 +128,7 @@ class HumanToRobotScaler:
             in_mapped_joint_indices : wp.array(dtype=wp.int32),
             in_mapped_joint_scales  : wp.array(dtype=wp.float32),
             in_mapped_joint_offsets : wp.array(dtype=wp.transform),
-            in_position_offset_mode : wp.int32,
+            in_position_offset_modes: wp.array(dtype=wp.int32),
             in_position_offset_yaw  : wp.quat,
             in_scale_animation      : wp.bool,
             out_result              : wp.array(dtype=wp.transform)
@@ -122,7 +136,7 @@ class HumanToRobotScaler:
             HumanToRobotScaler.wp_compute_scaled_effectors(
                 in_num_mapped_joints, in_global_pose, in_mapped_joint_indices,
                 in_mapped_joint_scales, in_mapped_joint_offsets,
-                in_position_offset_mode, in_position_offset_yaw,
+                in_position_offset_modes, in_position_offset_yaw,
                 in_scale_animation, out_result)
 
         @wp.kernel
@@ -174,7 +188,7 @@ class HumanToRobotScaler:
                     self.mapped_joint_indices,
                     self.mapped_joint_scales,
                     self.mapped_joint_offsets,
-                    self.position_offset_mode,
+                    self.mapped_joint_offset_modes,
                     self.position_offset_yaw,
                     scale_animation
                 ],
@@ -224,7 +238,7 @@ class HumanToRobotScaler:
             in_mapped_joint_indices : wp.array(dtype=wp.int32),
             in_mapped_joint_scales  : wp.array(dtype=wp.float32),
             in_mapped_joint_offsets : wp.array(dtype=wp.transform),
-            in_position_offset_mode : wp.int32,
+            in_position_offset_modes: wp.array(dtype=wp.int32),
             in_position_offset_yaw  : wp.quat,
             in_scale_animation      : wp.bool,
             out_result              : wp.array2d(dtype=wp.transform)
@@ -233,7 +247,7 @@ class HumanToRobotScaler:
             HumanToRobotScaler.wp_compute_scaled_effectors(
                in_num_mapped_joints, in_global_pose[frame_idx], in_mapped_joint_indices,
                in_mapped_joint_scales, in_mapped_joint_offsets,
-               in_position_offset_mode, in_position_offset_yaw,
+               in_position_offset_modes, in_position_offset_yaw,
                in_scale_animation, out_result[frame_idx])
 
         @wp.kernel
@@ -287,7 +301,7 @@ class HumanToRobotScaler:
                     self.mapped_joint_indices,
                     self.mapped_joint_scales,
                     self.mapped_joint_offsets,
-                    self.position_offset_mode,
+                    self.mapped_joint_offset_modes,
                     self.position_offset_yaw,
                     scale_animation
                 ],
@@ -369,7 +383,7 @@ class HumanToRobotScaler:
         in_mapped_joint_indices : wp.array(dtype=wp.int32),
         in_mapped_joint_scales  : wp.array(dtype=wp.float32),
         in_mapped_joint_offsets : wp.array(dtype=wp.transform),
-        in_position_offset_mode : wp.int32,
+        in_position_offset_modes: wp.array(dtype=wp.int32),
         in_position_offset_yaw  : wp.quat,
         in_scale_animation      : wp.bool,
         out_result              : wp.array(dtype=wp.transform)
@@ -393,9 +407,18 @@ class HumanToRobotScaler:
 
             q = wp.mul(pose_tx.q, offset_tx.q)
             offset_p = offset_tx.p
-            if in_position_offset_mode == 0:
+            mode = in_position_offset_modes[i]
+            if mode == 0:
                 offset_p = wp.quat_rotate(q, offset_tx.p)
-            elif in_position_offset_mode == 2:
+            elif mode == 2:
                 offset_p = wp.quat_rotate(wp.mul(root_q, in_position_offset_yaw), offset_tx.p)
+            elif mode == 3:
+                # yaw-only: the offset follows the joint's heading but ignores
+                # pitch/roll, so stance roll-over stops levering the target.
+                siny = 2.0 * (q[3] * q[2] + q[0] * q[1])
+                cosy = 1.0 - 2.0 * (q[1] * q[1] + q[2] * q[2])
+                yaw_q = wp.quat_from_axis_angle(
+                    wp.vec3(0.0, 0.0, 1.0), wp.atan2(siny, cosy))
+                offset_p = wp.quat_rotate(yaw_q, offset_tx.p)
             t = geocentric_scaled_t + scaled_root_t + offset_p
             out_result[i] = wp.transform(t, q)

@@ -3,6 +3,7 @@
 
 import warp as wp
 import math
+import os
 import numpy as np
 import newton
 import newton.ik as ik
@@ -1398,6 +1399,23 @@ class NewtonPipeline:
                         'mid_max': max(upper_len - margin, 0.01),
                         'tip_max': max(upper_len + lower_len - margin, 0.02),
                     })
+            # Optional stance foot-lock: latch foot effector targets to a fixed
+            # anchor pose during detected contact windows so the robot foot
+            # plants instead of chasing the human ankle's heel-to-toe roll-over.
+            self.foot_lock_cfg = None
+            _fl = retargeter_config.get('foot_lock', None)
+            if _fl:
+                self.foot_lock_cfg = {
+                    'indices': [self.mapped_joints.index(n)
+                                for n in _fl.get('effectors', ['LeftFoot', 'RightFoot'])],
+                    'z_threshold_m': float(_fl.get('z_threshold_m', 0.02)),
+                    'min_frames': int(_fl.get('min_frames', 8)),
+                    'blend_frames': int(_fl.get('blend_frames', 6)),
+                }
+                print(f"[INFO]\t  Foot Lock: effectors={_fl.get('effectors', ['LeftFoot', 'RightFoot'])} "
+                      f"z_thr={self.foot_lock_cfg['z_threshold_m']} "
+                      f"min={self.foot_lock_cfg['min_frames']} blend={self.foot_lock_cfg['blend_frames']}")
+
             self.joint_limit_clamper = JointLimitClamper(self.ik_model)
             self.ai_sapiens_output_joint_safety_margin_specs = self._build_ai_sapiens_output_joint_safety_margin_specs()
             self.ai_sapiens_output_joint_step_limit_specs = self._build_ai_sapiens_output_joint_step_limit_specs()
@@ -1827,6 +1845,8 @@ class NewtonPipeline:
 
             if self.limb_reach_chains:
                 targets = self._apply_limb_reach_projection(targets)
+            if self.foot_lock_cfg:
+                targets = self._apply_foot_lock(targets)
             self.input_targets.append(targets)
             self.input_adaptive_arm_objective_scales.append(adaptive_arm_scale_trace)
             self.input_risk_window_objective_scales.append(risk_window_scale_trace)
@@ -1956,6 +1976,54 @@ class NewtonPipeline:
                 "ai_sapiens_arm_temporal_regularization": self._ai_sapiens_arm_temporal_regularization_summary(),
             })
 
+    def _apply_foot_lock(self, targets):
+        """
+        Latch foot effector targets to a fixed anchor pose during stance.
+
+        Contact windows are detected on the target z (below the per-clip
+        ground percentile + threshold). Within each window the target pose is
+        held at the window's midpoint pose, with a linear position / nlerp
+        quaternion ramp over ``blend_frames`` at both edges so the swing
+        trajectory stays continuous. This removes the human ankle's
+        heel-to-toe roll-over translation (and stance yaw wander) from the
+        targets, so the solved robot foot plants like a flat-foot gait.
+        """
+        cfg = self.foot_lock_cfg
+        targets = np.array(targets, copy=True)
+        for idx in cfg['indices']:
+            z = targets[:, idx, 2]
+            ground = np.percentile(z, 5)
+            contact = z < ground + cfg['z_threshold_m']
+            F = len(contact)
+            i = 0
+            while i < F:
+                if not contact[i]:
+                    i += 1
+                    continue
+                j = i
+                while j < F and contact[j]:
+                    j += 1
+                if j - i >= cfg['min_frames']:
+                    anchor = targets[(i + j) // 2, idx].copy()
+                    n = j - i
+                    blend = min(cfg['blend_frames'], n // 2)
+                    w = np.ones(n, dtype=np.float64)
+                    if blend > 0:
+                        ramp = np.linspace(1.0 / (blend + 1), 1.0, blend, endpoint=False)
+                        w[:blend] = ramp
+                        w[-blend:] = ramp[::-1]
+                    seg = targets[i:j, idx]
+                    seg[:, 0:3] = (1 - w)[:, None] * seg[:, 0:3] + w[:, None] * anchor[0:3]
+                    q = seg[:, 3:7]
+                    aq = anchor[3:7]
+                    sign = np.where((q @ aq) < 0.0, -1.0, 1.0)[:, None]
+                    qb = (1 - w)[:, None] * q * sign + w[:, None] * aq[None, :]
+                    qb /= np.linalg.norm(qb, axis=1, keepdims=True)
+                    seg[:, 3:7] = qb
+                    targets[i:j, idx] = seg
+                i = j
+        return targets
+
     def _apply_limb_reach_projection(self, targets):
         """
         Clamp per-chain effector target positions to the robot's reach.
@@ -1990,6 +2058,18 @@ class NewtonPipeline:
         if num_envs == 0:
             self.retargeted_motions = []
             return
+
+        # Debug: dump the scaled IK targets per env (SOMA_DUMP_TARGETS=<dir>)
+        _dump_dir = os.environ.get("SOMA_DUMP_TARGETS")
+        if _dump_dir:
+            for _e in range(num_envs):
+                np.savez_compressed(
+                    f"{_dump_dir}/targets_env{_e}.npz",
+                    targets=np.asarray(self.input_targets[_e], dtype=np.float32),
+                    effector_names=np.array(self.human_robot_scaler.effector_names()),
+                    mapped_joints=np.array(self.mapped_joints),
+                    feet_idx=np.array(self.feet_effector_indices))
+            print(f"[DEBUG] dumped {num_envs} target arrays to {_dump_dir}")
 
         # Clamp objective weights to valid values
         self.ik_iterations = max(1, self.ik_iterations)

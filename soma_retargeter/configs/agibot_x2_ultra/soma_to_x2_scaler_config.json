@@ -1,0 +1,306 @@
+{
+    "robot_type": "agibot_x2_ultra",
+    "human_root_name": "Hips",
+    "human_height_assumption": 1.8,
+    "joint_scales": {
+        "Hips": 0.7185,
+        "Chest": 1.0339,
+        "Neck1": 1.0339,
+        "LeftLeg": 0.7435,
+        "RightLeg": 0.7435,
+        "LeftShin": 0.7435,
+        "RightShin": 0.7435,
+        "LeftFoot": 0.678,
+        "RightFoot": 0.678,
+        "LeftToe": 0.6448,
+        "RightToe": 0.6448,
+        "LeftToeBase": 0.6448,
+        "RightToeBase": 0.6448,
+        "LeftArm": 0.7715,
+        "RightArm": 0.7715,
+        "LeftForeArm": 0.7715,
+        "RightForeArm": 0.7715,
+        "LeftHand": 0.7492,
+        "RightHand": 0.7492
+    },
+    "joint_parents": {
+        "Hips": "",
+        "Chest": "Hips",
+        "Neck1": "Chest",
+        "LeftLeg": "Hips",
+        "RightLeg": "Hips",
+        "LeftShin": "LeftLeg",
+        "RightShin": "RightLeg",
+        "LeftFoot": "LeftShin",
+        "RightFoot": "RightShin",
+        "LeftToe": "LeftFoot",
+        "RightToe": "RightFoot",
+        "LeftToeBase": "LeftFoot",
+        "RightToeBase": "RightFoot",
+        "LeftArm": "Chest",
+        "RightArm": "Chest",
+        "LeftForeArm": "LeftArm",
+        "RightForeArm": "RightArm",
+        "LeftHand": "LeftForeArm",
+        "RightHand": "RightForeArm"
+    },
+    "joint_offsets": {
+        "Hips": [
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.4992,
+                0.5008,
+                0.5008,
+                0.4992
+            ]
+        ],
+        "LeftLeg": [
+            [
+                -0.0157,
+                0.0668,
+                -0.0787
+            ],
+            [
+                0.5,
+                -0.5,
+                -0.5,
+                0.5
+            ]
+        ],
+        "LeftShin": [
+            [
+                -0.0301,
+                0.0372,
+                0.1958
+            ],
+            [
+                0.5,
+                -0.5,
+                -0.5,
+                0.5
+            ]
+        ],
+        "LeftFoot": [
+            [
+                -0.0337,
+                0.0731,
+                0.0
+            ],
+            [
+                0.6953,
+                -0.1284,
+                -0.1284,
+                0.6953
+            ]
+        ],
+        "LeftToe": [
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.7,
+                -0.1001,
+                -0.0991,
+                0.7001
+            ]
+        ],
+        "LeftToeBase": [
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.7,
+                -0.1001,
+                -0.0991,
+                0.7001
+            ]
+        ],
+        "RightLeg": [
+            [
+                -0.0157,
+                -0.0668,
+                -0.0787
+            ],
+            [
+                0.5,
+                0.5,
+                0.5,
+                0.5
+            ]
+        ],
+        "RightShin": [
+            [
+                -0.0301,
+                -0.0373,
+                0.1958
+            ],
+            [
+                0.5,
+                0.5,
+                0.5,
+                0.5
+            ]
+        ],
+        "RightFoot": [
+            [
+                -0.0337,
+                -0.0731,
+                0.0
+            ],
+            [
+                0.1284,
+                0.6953,
+                0.6954,
+                0.1284
+            ]
+        ],
+        "RightToe": [
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                -0.0991,
+                -0.7001,
+                -0.7,
+                -0.1001
+            ]
+        ],
+        "RightToeBase": [
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                -0.0991,
+                -0.7001,
+                -0.7,
+                -0.1001
+            ]
+        ],
+        "Chest": [
+            [
+                0.008,
+                0.0,
+                -0.0359
+            ],
+            [
+                0.4991,
+                0.5009,
+                0.5009,
+                0.4991
+            ]
+        ],
+        "Neck1": [
+            [
+                0.0,
+                0.0,
+                0.0
+            ],
+            [
+                0.5,
+                0.5,
+                0.5,
+                0.5
+            ]
+        ],
+        "LeftArm": [
+            [
+                0.0122,
+                0.0724,
+                0.1033
+            ],
+            [
+                -0.5156,
+                -0.4621,
+                0.5119,
+                0.5086
+            ]
+        ],
+        "LeftForeArm": [
+            [
+                0.0173,
+                0.0233,
+                0.0755
+            ],
+            [
+                -0.4582,
+                -0.5124,
+                0.5191,
+                0.508
+            ]
+        ],
+        "LeftHand": [
+            [
+                0.0297,
+                0.0956,
+                0.1166
+            ],
+            [
+                -0.4072,
+                -0.5374,
+                0.4997,
+                0.5438
+            ]
+        ],
+        "RightArm": [
+            [
+                0.0122,
+                -0.0724,
+                0.1033
+            ],
+            [
+                -0.5118,
+                0.5086,
+                -0.5156,
+                0.462
+            ]
+        ],
+        "RightForeArm": [
+            [
+                0.0161,
+                -0.0232,
+                0.0754
+            ],
+            [
+                -0.519,
+                0.5081,
+                -0.4582,
+                0.5124
+            ]
+        ],
+        "RightHand": [
+            [
+                0.0285,
+                -0.0958,
+                0.1153
+            ],
+            [
+                -0.4985,
+                0.5454,
+                -0.4087,
+                0.5357
+            ]
+        ]
+    },
+    "position_offset_mode": "local_rotated",
+    "position_offset_mode_overrides": {
+        "LeftArm": "root_rotated",
+        "LeftForeArm": "root_rotated",
+        "LeftHand": "root_rotated",
+        "RightArm": "root_rotated",
+        "RightForeArm": "root_rotated",
+        "RightHand": "root_rotated"
+    },
+    "_provenance": "derived by benchmark/prep/derive_soma_scaler.py (nicolejrkim/retargeting-suite) from the SOMA zero pose <-> x2_ultra_31dof.xml zero pose correspondence (elbows {'left_elbow_joint': -1.635, 'right_elbow_joint': -1.635}): offset_q = conj(C h_q) r_q, position offsets exact at the correspondence pose (arm chain in the root frame); scales = FK ratios (eff. Hips 0.669 Leg 0.702 Foot 0.640 Chest 0.976 Arm 0.729, x1.8/1.7 for the config convention; Hips includes the root A/B factor 1.015). Lineage recipe: k1."
+}

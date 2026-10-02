@@ -192,6 +192,28 @@ class BoosterK1_22DOF_CSVConfig(EulerRootRobotCSVConfig):
 
 
 @dataclass
+class UnitreeH2_31DOF_CSVConfig(EulerRootRobotCSVConfig):
+    """Unitree H2 (31 dof: legs 6x2, waist 3, head 2, arms 7x2). Root pose is the pelvis.
+    Columns = the official unitree_mujoco / unitree_ros joint names in model (tree) order; note the
+    H2 leg chain is hip_pitch, hip_roll, hip_yaw, knee, ankle_ROLL, ankle_PITCH."""
+    name: str = "unitree_h2_31dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof", "left_knee_joint_dof",
+        "left_ankle_roll_joint_dof", "left_ankle_pitch_joint_dof", "right_hip_pitch_joint_dof",
+        "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof", "right_knee_joint_dof", "right_ankle_roll_joint_dof",
+        "right_ankle_pitch_joint_dof", "waist_yaw_joint_dof", "waist_roll_joint_dof", "waist_pitch_joint_dof",
+        "head_pitch_joint_dof", "head_yaw_joint_dof", "left_shoulder_pitch_joint_dof",
+        "left_shoulder_roll_joint_dof", "left_shoulder_yaw_joint_dof", "left_elbow_joint_dof",
+        "left_wrist_roll_joint_dof", "left_wrist_pitch_joint_dof", "left_wrist_yaw_joint_dof",
+        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof", "right_shoulder_yaw_joint_dof",
+        "right_elbow_joint_dof", "right_wrist_roll_joint_dof", "right_wrist_pitch_joint_dof",
+        "right_wrist_yaw_joint_dof"]
+
+
+@dataclass
 class UnitreeH1_2_27DOF_CSVConfig(EulerRootRobotCSVConfig):
     name: str = "unitree_h1_2_27dof"
     csv_header: ClassVar[List[str]] = [

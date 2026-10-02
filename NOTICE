@@ -21,15 +21,25 @@ github.com/nicolejrkim/soma-retargeter):
   CSV writers) kept beside the v0.2.0 SomaRetargetingPipeline so that the
   recipes published with this fork reproduce bit for bit. Fork additions
   inside it: a robot registry (RobotSpec), Unitree H1-2 (27 dof), Unitree R1
-  (24 dof), Booster T1 (23 dof and 29 dof rigs), Booster K1 (22 dof) and
+  (24 dof), Booster T1 (23 dof and 29 dof rigs), Booster K1 (22 dof),
+  Unitree H2 (31 dof), AgiBot X2 Ultra (31 dof), AgiBot A3 T3.0 (31 dof) and
   ROBOTIS AI Sapiens targets; scaler position-offset modes and per-joint
   overrides; temporal joint reference, neutral reference and limb reach
   projection objectives; stance foot lock; pelvis floor; AI Sapiens staged
   solver and arm objectives (merged from ROBOTIS-GIT/soma-retargeter).
 * soma_retargeter/configs/<robot>/ — the fork's retargeter, scaler and feet
   stabilizer configs for the legacy pipeline (unitree_g1 configs are the
-  unchanged v0.1.0 files).
-* assets/robots/ — MJCF descriptions and meshes for the fork's robots.
+  unchanged v0.1.0 files; unitree_h1_2, unitree_r1 and booster_k1 carry the
+  2026-10-02 pelvis_floor recipes with the previous recipe kept as
+  *_paper.json).
+* assets/robots/ — MJCF descriptions and meshes for the fork's robots, each
+  under its vendor's licence: unitree_h1_2, unitree_r1 (Unitree Robotics,
+  BSD-3-Clause); booster_t1, booster_t1_29dof, booster_k1 (Booster Robotics
+  booster_assets, Apache-2.0); unitree_h2 (unitreerobotics/unitree_mujoco,
+  BSD-3-Clause, LICENSE alongside; joint limits cross-checked against
+  unitree_ros h2_description); agibot_x2_ultra (AgibotTech/agibot_x2_urdf,
+  Mulan Permissive Software License v2, LICENSE alongside); agibot_a3
+  (AgibotTech/A3-A3U-robot-model, Mulan PSL v2, LICENSE alongside).
 * app/bvh_to_csv_converter.py — upstream converter plus a dispatch to
   app/bvh_to_csv_converter_legacy.py (the fork's converter) selected by the
   converter config ("pipeline", retargeter-config format or target name).

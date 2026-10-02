@@ -29,8 +29,8 @@
         "Hips": {
             "t_body": "pelvis",
             "r_body": "pelvis",
-            "t_weight": 30.0,
-            "r_weight": 2.0
+            "t_weight": 100.0,
+            "r_weight": 10.0
         },
         "Chest": {
             "t_body": "torso_link",
@@ -77,38 +77,38 @@
         "LeftLeg": {
             "t_body": "left_hip_roll_link",
             "r_body": "left_hip_roll_link",
-            "t_weight": 1.5,
-            "r_weight": 0.15
+            "t_weight": 0.0,
+            "r_weight": 10.0
         },
         "LeftShin": {
             "t_body": "left_knee_link",
             "r_body": "left_knee_link",
-            "t_weight": 2.5,
-            "r_weight": 1.0
+            "t_weight": 0.0,
+            "r_weight": 10.0
         },
         "LeftFoot": {
             "t_body": "left_ankle_roll_link",
             "r_body": "left_ankle_roll_link",
-            "t_weight": 30.0,
-            "r_weight": 2.0
+            "t_weight": 100.0,
+            "r_weight": 10.0
         },
         "RightLeg": {
             "t_body": "right_hip_roll_link",
             "r_body": "right_hip_roll_link",
-            "t_weight": 1.5,
-            "r_weight": 0.15
+            "t_weight": 0.0,
+            "r_weight": 10.0
         },
         "RightShin": {
             "t_body": "right_knee_link",
             "r_body": "right_knee_link",
-            "t_weight": 2.5,
-            "r_weight": 1.0
+            "t_weight": 0.0,
+            "r_weight": 10.0
         },
         "RightFoot": {
             "t_body": "right_ankle_roll_link",
             "r_body": "right_ankle_roll_link",
-            "t_weight": 30.0,
-            "r_weight": 2.0
+            "t_weight": 100.0,
+            "r_weight": 10.0
         }
     },
     "enable_ai_sapiens_root_orientation_step_limit": true,
@@ -142,5 +142,8 @@
         "right_wrist_pitch_joint": 0.15,
         "right_wrist_yaw_joint": 0.15,
         "torso_joint": 0.2
+    },
+    "pelvis_floor": {
+        "min_height_m": 0.7
     }
 }

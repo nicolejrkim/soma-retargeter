@@ -7,7 +7,7 @@ from typing import Callable, Dict, List, Optional
 
 import newton
 
-from soma_retargeter.assets.csv import (
+from soma_retargeter.legacy.csv import (
     AISapiens23DOF_CSVConfig,
     BoosterK1_22DOF_CSVConfig,
     BoosterT1_23DOF_CSVConfig,
@@ -21,7 +21,7 @@ from soma_retargeter.assets.csv import (
 
 def _create_ai_sapiens_builder() -> "newton.ModelBuilder":
     # Lazy import: resolution may regenerate the MJCF, which pulls in mujoco.
-    import soma_retargeter.assets.ai_sapiens as ai_sapiens_assets
+    import soma_retargeter.legacy.ai_sapiens as ai_sapiens_assets
 
     builder = newton.ModelBuilder()
     builder.add_mjcf(ai_sapiens_assets.resolve_ai_sapiens_mjcf_path())

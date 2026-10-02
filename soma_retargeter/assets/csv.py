@@ -10,7 +10,6 @@ import warp as wp
 
 from scipy.spatial.transform import Rotation as R
 from soma_retargeter.robotics.csv_animation_buffer import CSVAnimationBuffer
-from soma_retargeter.assets.ai_sapiens import AI_SAPIENS_JOINT_NAMES
 
 
 class RobotCSVConfig(Protocol):
@@ -24,13 +23,24 @@ class RobotCSVConfig(Protocol):
 
 
 @dataclass
-class EulerRootRobotCSVConfig:
-    """
-    Shared CSV conversion for robots using the SEED-style layout:
-    frame index, root translation in cm, root rotation as XYZ euler degrees,
-    then one column per joint DOF in degrees (matching the robot model's
-    joint order). Subclasses define ``name`` and ``csv_header``.
-    """
+class UnitreeG129DOF_CSVConfig:
+    name: str = "unitree_g1_29dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof",
+        "left_knee_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
+        "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof",
+        "right_knee_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof",
+        "waist_yaw_joint_dof", "waist_roll_joint_dof", "waist_pitch_joint_dof",
+        "left_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
+        "left_shoulder_yaw_joint_dof", "left_elbow_joint_dof",
+        "left_wrist_roll_joint_dof", "left_wrist_pitch_joint_dof", "left_wrist_yaw_joint_dof",
+        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
+        "right_shoulder_yaw_joint_dof", "right_elbow_joint_dof",
+        "right_wrist_roll_joint_dof", "right_wrist_pitch_joint_dof",
+        "right_wrist_yaw_joint_dof"]
 
     def to_anim_frame(self, csv_row: np.ndarray) -> np.ndarray:
         """
@@ -71,145 +81,6 @@ class EulerRootRobotCSVConfig:
         row.extend(np.rad2deg(anim_row[7:]))
 
         return row
-
-
-@dataclass
-class AISapiens23DOF_CSVConfig(EulerRootRobotCSVConfig):
-    """AI Sapiens native 23 hinge-joint CSV layout."""
-    name: str = "ai_sapiens_23dof"
-    csv_header: ClassVar[List[str]] = [
-        "Frame",
-        "root_translateX", "root_translateY", "root_translateZ",
-        "root_rotateX", "root_rotateY", "root_rotateZ",
-        *[f"{joint_name}_dof" for joint_name in AI_SAPIENS_JOINT_NAMES],
-    ]
-
-
-@dataclass
-class UnitreeG129DOF_CSVConfig(EulerRootRobotCSVConfig):
-    name: str = "unitree_g1_29dof"
-    csv_header: ClassVar[List[str]] = [
-        "Frame",
-        "root_translateX", "root_translateY", "root_translateZ",
-        "root_rotateX", "root_rotateY", "root_rotateZ",
-        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof",
-        "left_knee_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
-        "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof",
-        "right_knee_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof",
-        "waist_yaw_joint_dof", "waist_roll_joint_dof", "waist_pitch_joint_dof",
-        "left_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
-        "left_shoulder_yaw_joint_dof", "left_elbow_joint_dof",
-        "left_wrist_roll_joint_dof", "left_wrist_pitch_joint_dof", "left_wrist_yaw_joint_dof",
-        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
-        "right_shoulder_yaw_joint_dof", "right_elbow_joint_dof",
-        "right_wrist_roll_joint_dof", "right_wrist_pitch_joint_dof",
-        "right_wrist_yaw_joint_dof"]
-
-
-@dataclass
-class UnitreeR1_24DOF_CSVConfig(EulerRootRobotCSVConfig):
-    name: str = "unitree_r1_24dof"
-    csv_header: ClassVar[List[str]] = [
-        "Frame",
-        "root_translateX", "root_translateY", "root_translateZ",
-        "root_rotateX", "root_rotateY", "root_rotateZ",
-        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof",
-        "left_knee_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
-        "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof",
-        "right_knee_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof",
-        "waist_roll_joint_dof", "waist_yaw_joint_dof",
-        "left_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
-        "left_shoulder_yaw_joint_dof", "left_elbow_joint_dof",
-        "left_wrist_roll_joint_dof",
-        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
-        "right_shoulder_yaw_joint_dof", "right_elbow_joint_dof",
-        "right_wrist_roll_joint_dof"]
-
-
-@dataclass
-class BoosterT1_23DOF_CSVConfig(EulerRootRobotCSVConfig):
-    """Booster T1 (serial kinematics). Root pose is the Trunk (chest) body,
-    which carries the floating base in the Booster model."""
-    name: str = "booster_t1_23dof"
-    csv_header: ClassVar[List[str]] = [
-        "Frame",
-        "root_translateX", "root_translateY", "root_translateZ",
-        "root_rotateX", "root_rotateY", "root_rotateZ",
-        "AAHead_yaw_dof", "Head_pitch_dof",
-        "Left_Shoulder_Pitch_dof", "Left_Shoulder_Roll_dof",
-        "Left_Elbow_Pitch_dof", "Left_Elbow_Yaw_dof",
-        "Right_Shoulder_Pitch_dof", "Right_Shoulder_Roll_dof",
-        "Right_Elbow_Pitch_dof", "Right_Elbow_Yaw_dof",
-        "Waist_dof",
-        "Left_Hip_Pitch_dof", "Left_Hip_Roll_dof", "Left_Hip_Yaw_dof",
-        "Left_Knee_Pitch_dof", "Left_Ankle_Pitch_dof", "Left_Ankle_Roll_dof",
-        "Right_Hip_Pitch_dof", "Right_Hip_Roll_dof", "Right_Hip_Yaw_dof",
-        "Right_Knee_Pitch_dof", "Right_Ankle_Pitch_dof", "Right_Ankle_Roll_dof"]
-
-
-@dataclass
-class BoosterT1_29DOF_CSVConfig(EulerRootRobotCSVConfig):
-    """Booster T1, 7-dof-arm hardware variant (adds wrist pitch/yaw + hand
-    roll per arm to the 23-dof serial model). Root pose is the Trunk body."""
-    name: str = "booster_t1_29dof"
-    csv_header: ClassVar[List[str]] = [
-        "Frame",
-        "root_translateX", "root_translateY", "root_translateZ",
-        "root_rotateX", "root_rotateY", "root_rotateZ",
-        "AAHead_yaw_dof", "Head_pitch_dof",
-        "Left_Shoulder_Pitch_dof", "Left_Shoulder_Roll_dof",
-        "Left_Elbow_Pitch_dof", "Left_Elbow_Yaw_dof",
-        "Left_Wrist_Pitch_dof", "Left_Wrist_Yaw_dof", "Left_Hand_Roll_dof",
-        "Right_Shoulder_Pitch_dof", "Right_Shoulder_Roll_dof",
-        "Right_Elbow_Pitch_dof", "Right_Elbow_Yaw_dof",
-        "Right_Wrist_Pitch_dof", "Right_Wrist_Yaw_dof", "Right_Hand_Roll_dof",
-        "Waist_dof",
-        "Left_Hip_Pitch_dof", "Left_Hip_Roll_dof", "Left_Hip_Yaw_dof",
-        "Left_Knee_Pitch_dof", "Left_Ankle_Pitch_dof", "Left_Ankle_Roll_dof",
-        "Right_Hip_Pitch_dof", "Right_Hip_Roll_dof", "Right_Hip_Yaw_dof",
-        "Right_Knee_Pitch_dof", "Right_Ankle_Pitch_dof", "Right_Ankle_Roll_dof"]
-
-
-@dataclass
-class BoosterK1_22DOF_CSVConfig(EulerRootRobotCSVConfig):
-    """Booster K1 (22 dof: head 2, arms 4x2, legs 6x2; no waist). Root pose is
-    the trunk body. Column names are the official booster_assets joint names
-    (aa-prefixed head/shoulder-pitch joints included) in model joint order."""
-    name: str = "booster_k1_22dof"
-    csv_header: ClassVar[List[str]] = [
-        "Frame",
-        "root_translateX", "root_translateY", "root_translateZ",
-        "root_rotateX", "root_rotateY", "root_rotateZ",
-        "aahead_yaw_joint_dof", "aahead_pitch_joint_dof",
-        "aaleft_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
-        "left_elbow_pitch_joint_dof", "left_elbow_yaw_joint_dof",
-        "aaright_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
-        "right_elbow_pitch_joint_dof", "right_elbow_yaw_joint_dof",
-        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof",
-        "left_knee_pitch_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
-        "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof",
-        "right_knee_pitch_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof"]
-
-
-@dataclass
-class UnitreeH1_2_27DOF_CSVConfig(EulerRootRobotCSVConfig):
-    name: str = "unitree_h1_2_27dof"
-    csv_header: ClassVar[List[str]] = [
-        "Frame",
-        "root_translateX", "root_translateY", "root_translateZ",
-        "root_rotateX", "root_rotateY", "root_rotateZ",
-        "left_hip_yaw_joint_dof", "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof",
-        "left_knee_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
-        "right_hip_yaw_joint_dof", "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof",
-        "right_knee_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof",
-        "torso_joint_dof",
-        "left_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
-        "left_shoulder_yaw_joint_dof", "left_elbow_joint_dof",
-        "left_wrist_roll_joint_dof", "left_wrist_pitch_joint_dof", "left_wrist_yaw_joint_dof",
-        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
-        "right_shoulder_yaw_joint_dof", "right_elbow_joint_dof",
-        "right_wrist_roll_joint_dof", "right_wrist_pitch_joint_dof",
-        "right_wrist_yaw_joint_dof"]
 
 
 def load_csv(file_path: str, fps: float = 120.0, csv_config: RobotCSVConfig = UnitreeG129DOF_CSVConfig()) -> CSVAnimationBuffer:

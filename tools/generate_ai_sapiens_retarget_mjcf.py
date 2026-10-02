@@ -4,7 +4,7 @@
 
 """CLI wrapper for AI Sapiens retarget MJCF generation."""
 
-from soma_retargeter.assets.ai_sapiens_mjcf import main
+from soma_retargeter.legacy.ai_sapiens_mjcf import main
 
 
 if __name__ == "__main__":

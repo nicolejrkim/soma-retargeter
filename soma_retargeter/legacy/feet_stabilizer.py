@@ -4,10 +4,10 @@
 import warp as wp
 
 import newton
-import soma_retargeter.utils.newton_utils as newton_utils
+import soma_retargeter.legacy.newton_utils as newton_utils
 import soma_retargeter.animation.ik as ik_utils
-import soma_retargeter.utils.io_utils as io_utils
-from soma_retargeter.robotics import robot_registry
+import soma_retargeter.legacy.io_utils as io_utils
+from soma_retargeter.legacy import robot_registry
 
 _LIMB_DATA_IDX_NAME = 0
 _LIMB_DATA_IDX_EFFECTOR_INDICES = 1

@@ -17,7 +17,7 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 from typing import Any
 
-import soma_retargeter.utils.io_utils as io_utils
+import soma_retargeter.legacy.io_utils as io_utils
 
 
 DEFAULT_PATCH_PATH = io_utils.get_config_file("ai_sapiens", "ai_sapiens_retarget_mjcf_patch.json")

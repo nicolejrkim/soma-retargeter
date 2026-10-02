@@ -1,0 +1,268 @@
+# SPDX-FileCopyrightText: Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+
+import csv
+from dataclasses import dataclass
+from typing import Protocol, ClassVar, List
+
+import numpy as np
+import warp as wp
+
+from scipy.spatial.transform import Rotation as R
+from soma_retargeter.robotics.csv_animation_buffer import CSVAnimationBuffer
+from soma_retargeter.legacy.ai_sapiens import AI_SAPIENS_JOINT_NAMES
+
+
+class RobotCSVConfig(Protocol):
+    name: str
+    csv_header: List[str]
+
+    def to_anim_frame(self, csv_row: np.ndarray) -> np.ndarray:
+        ...
+    def to_csv_row(self, frame_idx: int, anim_row: np.ndarray) -> List[float]:
+        ...
+
+
+@dataclass
+class EulerRootRobotCSVConfig:
+    """
+    Shared CSV conversion for robots using the SEED-style layout:
+    frame index, root translation in cm, root rotation as XYZ euler degrees,
+    then one column per joint DOF in degrees (matching the robot model's
+    joint order). Subclasses define ``name`` and ``csv_header``.
+    """
+
+    def to_anim_frame(self, csv_row: np.ndarray) -> np.ndarray:
+        """
+        Convert one CSV row (including frame index) into one anim buffer frame.
+        """
+        # csv_row layout: [frame index, tx, ty, tz, rx, ry, rz, dof0, ...]
+        num_joint_dofs = csv_row.shape[0] - 1 # Remove frame index
+        anim_row = np.zeros(
+            num_joint_dofs + 1, # euler rotate xyz values converted to quat
+            dtype=np.float32)
+
+        # translation (cm -> m)
+        anim_row[0:3] = csv_row[1:4] * 0.01
+
+        # rotation (euler deg -> quat)
+        euler = np.deg2rad(csv_row[4:7])
+        quat = wp.quat_rpy(euler[0], euler[1], euler[2])
+        anim_row[3:7] = quat
+
+        # remaining joints (deg -> rad)
+        anim_row[7:] = np.deg2rad(csv_row[7:])
+
+        return anim_row
+
+    def to_csv_row(self, frame_idx: int, anim_row: np.ndarray) -> List[float]:
+        """
+        Convert one anim buffer row into a CSV row with this config's layout.
+        """
+        # translation (m -> cm)
+        t = wp.vec3(*anim_row[0:3]) * 100.0
+        # root rotation (quat -> euler deg)
+        q = wp.quat(*anim_row[3:7])
+        euler = R.from_quat([q[0], q[1], q[2], q[3]]).as_euler("xyz", degrees=True)
+
+        row = [frame_idx, t[0], t[1], t[2], euler[0], euler[1], euler[2]]
+
+        # joints (rad -> deg)
+        row.extend(np.rad2deg(anim_row[7:]))
+
+        return row
+
+
+@dataclass
+class AISapiens23DOF_CSVConfig(EulerRootRobotCSVConfig):
+    """AI Sapiens native 23 hinge-joint CSV layout."""
+    name: str = "ai_sapiens_23dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        *[f"{joint_name}_dof" for joint_name in AI_SAPIENS_JOINT_NAMES],
+    ]
+
+
+@dataclass
+class UnitreeG129DOF_CSVConfig(EulerRootRobotCSVConfig):
+    name: str = "unitree_g1_29dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof",
+        "left_knee_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
+        "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof",
+        "right_knee_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof",
+        "waist_yaw_joint_dof", "waist_roll_joint_dof", "waist_pitch_joint_dof",
+        "left_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
+        "left_shoulder_yaw_joint_dof", "left_elbow_joint_dof",
+        "left_wrist_roll_joint_dof", "left_wrist_pitch_joint_dof", "left_wrist_yaw_joint_dof",
+        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
+        "right_shoulder_yaw_joint_dof", "right_elbow_joint_dof",
+        "right_wrist_roll_joint_dof", "right_wrist_pitch_joint_dof",
+        "right_wrist_yaw_joint_dof"]
+
+
+@dataclass
+class UnitreeR1_24DOF_CSVConfig(EulerRootRobotCSVConfig):
+    name: str = "unitree_r1_24dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof",
+        "left_knee_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
+        "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof",
+        "right_knee_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof",
+        "waist_roll_joint_dof", "waist_yaw_joint_dof",
+        "left_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
+        "left_shoulder_yaw_joint_dof", "left_elbow_joint_dof",
+        "left_wrist_roll_joint_dof",
+        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
+        "right_shoulder_yaw_joint_dof", "right_elbow_joint_dof",
+        "right_wrist_roll_joint_dof"]
+
+
+@dataclass
+class BoosterT1_23DOF_CSVConfig(EulerRootRobotCSVConfig):
+    """Booster T1 (serial kinematics). Root pose is the Trunk (chest) body,
+    which carries the floating base in the Booster model."""
+    name: str = "booster_t1_23dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "AAHead_yaw_dof", "Head_pitch_dof",
+        "Left_Shoulder_Pitch_dof", "Left_Shoulder_Roll_dof",
+        "Left_Elbow_Pitch_dof", "Left_Elbow_Yaw_dof",
+        "Right_Shoulder_Pitch_dof", "Right_Shoulder_Roll_dof",
+        "Right_Elbow_Pitch_dof", "Right_Elbow_Yaw_dof",
+        "Waist_dof",
+        "Left_Hip_Pitch_dof", "Left_Hip_Roll_dof", "Left_Hip_Yaw_dof",
+        "Left_Knee_Pitch_dof", "Left_Ankle_Pitch_dof", "Left_Ankle_Roll_dof",
+        "Right_Hip_Pitch_dof", "Right_Hip_Roll_dof", "Right_Hip_Yaw_dof",
+        "Right_Knee_Pitch_dof", "Right_Ankle_Pitch_dof", "Right_Ankle_Roll_dof"]
+
+
+@dataclass
+class BoosterT1_29DOF_CSVConfig(EulerRootRobotCSVConfig):
+    """Booster T1, 7-dof-arm hardware variant (adds wrist pitch/yaw + hand
+    roll per arm to the 23-dof serial model). Root pose is the Trunk body."""
+    name: str = "booster_t1_29dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "AAHead_yaw_dof", "Head_pitch_dof",
+        "Left_Shoulder_Pitch_dof", "Left_Shoulder_Roll_dof",
+        "Left_Elbow_Pitch_dof", "Left_Elbow_Yaw_dof",
+        "Left_Wrist_Pitch_dof", "Left_Wrist_Yaw_dof", "Left_Hand_Roll_dof",
+        "Right_Shoulder_Pitch_dof", "Right_Shoulder_Roll_dof",
+        "Right_Elbow_Pitch_dof", "Right_Elbow_Yaw_dof",
+        "Right_Wrist_Pitch_dof", "Right_Wrist_Yaw_dof", "Right_Hand_Roll_dof",
+        "Waist_dof",
+        "Left_Hip_Pitch_dof", "Left_Hip_Roll_dof", "Left_Hip_Yaw_dof",
+        "Left_Knee_Pitch_dof", "Left_Ankle_Pitch_dof", "Left_Ankle_Roll_dof",
+        "Right_Hip_Pitch_dof", "Right_Hip_Roll_dof", "Right_Hip_Yaw_dof",
+        "Right_Knee_Pitch_dof", "Right_Ankle_Pitch_dof", "Right_Ankle_Roll_dof"]
+
+
+@dataclass
+class BoosterK1_22DOF_CSVConfig(EulerRootRobotCSVConfig):
+    """Booster K1 (22 dof: head 2, arms 4x2, legs 6x2; no waist). Root pose is
+    the trunk body. Column names are the official booster_assets joint names
+    (aa-prefixed head/shoulder-pitch joints included) in model joint order."""
+    name: str = "booster_k1_22dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "aahead_yaw_joint_dof", "aahead_pitch_joint_dof",
+        "aaleft_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
+        "left_elbow_pitch_joint_dof", "left_elbow_yaw_joint_dof",
+        "aaright_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
+        "right_elbow_pitch_joint_dof", "right_elbow_yaw_joint_dof",
+        "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof", "left_hip_yaw_joint_dof",
+        "left_knee_pitch_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
+        "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof", "right_hip_yaw_joint_dof",
+        "right_knee_pitch_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof"]
+
+
+@dataclass
+class UnitreeH1_2_27DOF_CSVConfig(EulerRootRobotCSVConfig):
+    name: str = "unitree_h1_2_27dof"
+    csv_header: ClassVar[List[str]] = [
+        "Frame",
+        "root_translateX", "root_translateY", "root_translateZ",
+        "root_rotateX", "root_rotateY", "root_rotateZ",
+        "left_hip_yaw_joint_dof", "left_hip_pitch_joint_dof", "left_hip_roll_joint_dof",
+        "left_knee_joint_dof", "left_ankle_pitch_joint_dof", "left_ankle_roll_joint_dof",
+        "right_hip_yaw_joint_dof", "right_hip_pitch_joint_dof", "right_hip_roll_joint_dof",
+        "right_knee_joint_dof", "right_ankle_pitch_joint_dof", "right_ankle_roll_joint_dof",
+        "torso_joint_dof",
+        "left_shoulder_pitch_joint_dof", "left_shoulder_roll_joint_dof",
+        "left_shoulder_yaw_joint_dof", "left_elbow_joint_dof",
+        "left_wrist_roll_joint_dof", "left_wrist_pitch_joint_dof", "left_wrist_yaw_joint_dof",
+        "right_shoulder_pitch_joint_dof", "right_shoulder_roll_joint_dof",
+        "right_shoulder_yaw_joint_dof", "right_elbow_joint_dof",
+        "right_wrist_roll_joint_dof", "right_wrist_pitch_joint_dof",
+        "right_wrist_yaw_joint_dof"]
+
+
+def load_csv(file_path: str, fps: float = 120.0, csv_config: RobotCSVConfig = UnitreeG129DOF_CSVConfig()) -> CSVAnimationBuffer:
+    """
+    Load a robot motion CSV file into a ``CSVAnimationBuffer``.
+    Args:
+        file_path (str): Path to the CSV file to load.
+        fps (float, optional): Frames per second for the animation. Defaults to 120.0.
+        csv_config (RobotCSVConfig, optional): Configuration object that defines how to parse
+            CSV rows into animation frames. Defaults to ``UnitreeG129DOF_CSVConfig``.
+    Returns:
+        CSVAnimationBuffer: An animation buffer containing the loaded and converted animation data.
+    Raises:
+        FileNotFoundError: If the CSV file at file_path does not exist.
+    """
+    with open(file_path, 'r', encoding='utf-8') as f:
+        print(f"[INFO]: Loading CSV [{file_path}] for robot [{csv_config.name}]")
+        csv_data = np.loadtxt(f, delimiter=",", skiprows=1)
+        num_frames = csv_data.shape[0]
+
+        # Each anim row is derived by config, so infer size from first row
+        first_row_anim = csv_config.to_anim_frame(csv_data[0])
+        anim_data = np.zeros((num_frames, first_row_anim.shape[0]), dtype=np.float32)
+        anim_data[0, :] = first_row_anim
+
+        for i in range(1, num_frames):
+            anim_data[i, :] = csv_config.to_anim_frame(csv_data[i])
+
+        return CSVAnimationBuffer.create_from_raw_data(anim_data, fps)
+
+
+def save_csv(file_path: str, buffer: CSVAnimationBuffer, csv_config: RobotCSVConfig = UnitreeG129DOF_CSVConfig()) -> None:
+    """
+    Save a ``CSVAnimationBuffer`` to a robot motion CSV file.
+
+    Args:
+        file_path (str): The path where the CSV file will be saved.
+        buffer (CSVAnimationBuffer): The animation buffer containing frame data to be saved.
+        csv_config (RobotCSVConfig, optional): Configuration object that defines CSV format and headers.
+            Defaults to ``UnitreeG129DOF_CSVConfig``.
+
+    Raises:
+        RuntimeError: If the buffer is empty or invalid.
+        OSError: If the file cannot be opened or written.
+    """
+    if buffer is None or buffer.num_frames == 0:
+        raise RuntimeError("[ERROR]: Empty or invalid buffer.")
+
+    with open(file_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(csv_config.csv_header)
+
+        for i in range(buffer.num_frames):
+            data = buffer.get_data(i)
+            row = csv_config.to_csv_row(i, data)
+            writer.writerow(row)

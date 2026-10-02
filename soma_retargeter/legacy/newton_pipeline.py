@@ -10,11 +10,11 @@ import newton.ik as ik
 from tqdm import trange
 
 import soma_retargeter.assets.bvh as bvh_utils
-import soma_retargeter.assets.ai_sapiens as ai_sapiens_assets
-import soma_retargeter.utils.newton_utils as newton_utils
-import soma_retargeter.utils.io_utils as io_utils
-import soma_retargeter.pipelines.utils as pipeline_utils
-from soma_retargeter.pipelines.ik_objectives import (
+import soma_retargeter.legacy.ai_sapiens as ai_sapiens_assets
+import soma_retargeter.legacy.newton_utils as newton_utils
+import soma_retargeter.legacy.io_utils as io_utils
+import soma_retargeter.legacy.pipeline_utils as pipeline_utils
+from soma_retargeter.legacy.ik_objectives import (
     IKArmBendAngleObjective,
     IKLimbPlaneNormalObjective,
     IKMaskedBodyPositionObjective,
@@ -25,10 +25,10 @@ from soma_retargeter.pipelines.ik_objectives import (
 )
 from soma_retargeter.animation.skeleton import Skeleton, SkeletonInstance
 from soma_retargeter.animation.animation_buffer import AnimationBuffer
-from soma_retargeter.robotics.human_to_robot_scaler import HumanToRobotScaler
-from soma_retargeter.robotics import robot_registry
+from soma_retargeter.legacy.human_to_robot_scaler import HumanToRobotScaler
+from soma_retargeter.legacy import robot_registry
 from soma_retargeter.robotics.csv_animation_buffer import CSVAnimationBuffer
-from soma_retargeter.pipelines.feet_stabilizer import FeetStabilizer
+from soma_retargeter.legacy.feet_stabilizer import FeetStabilizer
 from soma_retargeter.pipelines.joint_limit_clamper import JointLimitClamper
 
 _DEFAULT_IK_SOLVER_ITERATIONS = 24

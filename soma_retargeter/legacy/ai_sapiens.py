@@ -11,8 +11,8 @@ from pathlib import Path
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 
-import soma_retargeter.assets.ai_sapiens_mjcf as ai_sapiens_mjcf
-import soma_retargeter.utils.io_utils as io_utils
+import soma_retargeter.legacy.ai_sapiens_mjcf as ai_sapiens_mjcf
+import soma_retargeter.legacy.io_utils as io_utils
 
 
 AI_SAPIENS_JOINT_NAMES: list[str] = [

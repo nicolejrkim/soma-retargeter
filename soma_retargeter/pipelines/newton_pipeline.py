@@ -1416,6 +1416,25 @@ class NewtonPipeline:
                       f"z_thr={self.foot_lock_cfg['z_threshold_m']} "
                       f"min={self.foot_lock_cfg['min_frames']} blend={self.foot_lock_cfg['blend_frames']}")
 
+            # Optional pelvis floor: a human crouch can ask for a pelvis lower than the
+            # robot's legs reach with the knee at its limit (H1-2: ~0.57 m on a 1.02 m
+            # stance). Below this height the IK can only pin the knees and splay the
+            # hips, so instead the whole body above the feet is lifted to the floor
+            # height: the robot crouches as deep as it can, with the knees inside
+            # their range, and DTMR receives a reference it can hold.
+            self.pelvis_floor_cfg = None
+            _pf = retargeter_config.get('pelvis_floor', None)
+            if _pf:
+                keep = set(_pf.get('fixed_effectors', ['LeftFoot', 'RightFoot', 'LeftToe', 'RightToe', 'LeftToeBase', 'RightToeBase']))
+                self.pelvis_floor_cfg = {
+                    'min_z': float(_pf['min_height_m']),
+                    'hips': self.mapped_joints.index(_pf.get('pelvis_effector', 'Hips')),
+                    'lift': [i for i, n in enumerate(self.mapped_joints) if n not in keep],
+                    'up_axis': int(_pf.get('up_axis', 2)),
+                }
+                print(f"[INFO]\t  Pelvis Floor: min_height={self.pelvis_floor_cfg['min_z']:.3f} m, "
+                      f"lifted effectors={len(self.pelvis_floor_cfg['lift'])}/{len(self.mapped_joints)} (feet fixed)")
+
             self.joint_limit_clamper = JointLimitClamper(self.ik_model)
             self.ai_sapiens_output_joint_safety_margin_specs = self._build_ai_sapiens_output_joint_safety_margin_specs()
             self.ai_sapiens_output_joint_step_limit_specs = self._build_ai_sapiens_output_joint_step_limit_specs()
@@ -1556,6 +1575,15 @@ class NewtonPipeline:
                     )
                 )
             target_after_source_body_chain_preservation = targets.copy()
+            if self.pelvis_floor_cfg:
+                pf = self.pelvis_floor_cfg; ax = pf['up_axis']
+                hz = targets[:, pf['hips'], ax]
+                dz = np.clip(pf['min_z'] - hz, 0.0, None)
+                n_lift = int((dz > 0).sum())
+                if n_lift:
+                    targets[:, pf['lift'], ax] += dz[:, None]
+                    print(f"[INFO]\t  Pelvis Floor: lifted {n_lift}/{len(dz)} frames, max {dz.max():.3f} m "
+                          f"(pelvis target z {hz.min():.3f}..{hz.max():.3f} m before)")
             lateral_summary = {"enabled": False}
             if self.ai_sapiens_dynamic_lateral_correction_enabled:
                 targets, lateral_summary = self._apply_ai_sapiens_dynamic_lateral_correction(

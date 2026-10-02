@@ -8,6 +8,7 @@ from typing import Callable, Dict, List, Optional
 import newton
 
 from soma_retargeter.legacy.csv import (
+    AgibotA3_31DOF_CSVConfig,
     AgibotX2Ultra_31DOF_CSVConfig,
     AISapiens23DOF_CSVConfig,
     BoosterK1_22DOF_CSVConfig,
@@ -176,6 +177,14 @@ _ROBOT_REGISTRY: Dict[str, RobotSpec] = {
         config_dir="agibot_x2_ultra",
         retargeter_configs={"soma": "soma_to_x2_retargeter_config.json"},
         csv_config=AgibotX2Ultra_31DOF_CSVConfig(),
+    ),
+    "agibot_a3": RobotSpec(
+        name="agibot_a3",
+        asset_folder="assets/robots/agibot_a3",
+        model_file="mjcf/a3_t3d0_31dof.xml",
+        config_dir="agibot_a3",
+        retargeter_configs={"soma": "soma_to_a3_retargeter_config.json"},
+        csv_config=AgibotA3_31DOF_CSVConfig(),
     ),
     "ai_sapiens": RobotSpec(
         name="ai_sapiens",

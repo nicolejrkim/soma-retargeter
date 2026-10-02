@@ -4,7 +4,7 @@
 from enum import IntEnum, auto
 
 import soma_retargeter.legacy.io_utils as io_utils
-import soma_retargeter.assets.usd as usd_utils
+import soma_retargeter.io.usd as usd_utils
 
 from soma_retargeter.legacy.robot_registry import RobotSpec
 

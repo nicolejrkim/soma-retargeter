@@ -9,7 +9,7 @@ import newton
 import newton.ik as ik
 from tqdm import trange
 
-import soma_retargeter.assets.bvh as bvh_utils
+import soma_retargeter.io.bvh as bvh_utils
 import soma_retargeter.legacy.ai_sapiens as ai_sapiens_assets
 import soma_retargeter.legacy.newton_utils as newton_utils
 import soma_retargeter.legacy.io_utils as io_utils

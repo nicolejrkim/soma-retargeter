@@ -12,7 +12,7 @@ import numpy as np
 from scipy.spatial.transform import Rotation as R
 
 import soma_retargeter.utils.math_utils as math_utils
-import soma_retargeter.assets.bvh as bvh_utils
+import soma_retargeter.io.bvh as bvh_utils
 import soma_retargeter.legacy.csv as csv_utils
 import soma_retargeter.legacy.ai_sapiens as ai_sapiens_assets
 import soma_retargeter.legacy.io_utils as io_utils

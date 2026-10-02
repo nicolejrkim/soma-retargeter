@@ -665,6 +665,9 @@ def main():
     custom_paths = config.get('extra_robot_paths', [])
     if isinstance(custom_paths, str):
         custom_paths = [custom_paths]
+    # repository-level robot packages (Robot Configurator output and the fork's
+    # *_upstream aliases of the bundled recipes) are always visible, whatever the cwd
+    custom_paths = [os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "assets", "robotics")] + list(custom_paths)
     for path in custom_paths:
         robot_registry.register_robots_path(path)
 

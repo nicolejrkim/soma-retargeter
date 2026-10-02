@@ -1,0 +1,9 @@
+{
+    "name": "unitree_g1_upstream",
+    "desc": {
+        "xml_path": "../../../../soma_retargeter/assets/robotics/unitree/g1/desc/mjcf/g1_29dof_rev_1_0.xml"
+    },
+    "retarget_configs": {
+        "soma": "configs/soma_retargeter_config.json"
+    }
+}

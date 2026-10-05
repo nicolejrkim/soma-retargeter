@@ -1,0 +1,9 @@
+{
+    "name": "booster_k1",
+    "desc": {
+        "xml_path": "../../../robots/booster_k1/mjcf/K1_22dof.xml"
+    },
+    "retarget_configs": {
+        "soma": "configs/soma_to_k1_retargeter_config.json"
+    }
+}

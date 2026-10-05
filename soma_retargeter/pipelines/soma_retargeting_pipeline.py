@@ -172,6 +172,24 @@ class SomaRetargetingPipeline:
             'auto_detect_contacts',
             self.contact_processing_enabled,
         )
+
+        # Optional pelvis floor (fork addition, opt-in): a human crouch can ask for a pelvis
+        # lower than the robot's legs reach with a flat sole; below that height the IK can only
+        # pin the knees. Instead every non-foot effector target is lifted so the pelvis target
+        # never goes below min_height_m (the robot crouches as deep as it can, knees inside
+        # their range). Same semantics as the legacy NewtonPipeline key.
+        self.pelvis_floor_cfg = None
+        _pf = retargeter_config.get('pelvis_floor', None)
+        if _pf:
+            keep = set(_pf.get('fixed_effectors', ['LeftFoot', 'RightFoot', 'LeftToe', 'RightToe', 'LeftToeBase', 'RightToeBase']))
+            self.pelvis_floor_cfg = {
+                'min_z': float(_pf['min_height_m']),
+                'hips': self.mapped_joints.index(_pf.get('pelvis_effector', 'Hips')),
+                'lift': [i for i, n in enumerate(self.mapped_joints) if n not in keep],
+                'up_axis': int(_pf.get('up_axis', 2)),
+            }
+            print(f"[INFO]\t  Pelvis Floor: min_height={self.pelvis_floor_cfg['min_z']:.3f} m, "
+                  f"lifted effectors={len(self.pelvis_floor_cfg['lift'])}/{len(self.mapped_joints)} (feet fixed)")
         self.contact_results: list[BaselineAResult] = []
         self.plant_subsegment_results: list[PlantSubsegmentResult] = []
         self.plant_blenders: list[PlantCorrectionBlender] = []
@@ -383,7 +401,19 @@ class SomaRetargetingPipeline:
             self.max_frames = max(self.max_frames, buffer.num_frames)
             buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(buffer, scale_animation, offsets[i])
 
-            self.input_targets.append(buffer_effectors[:,self.target_effector_indices,:])
+            if self.pelvis_floor_cfg:
+                pf = self.pelvis_floor_cfg; ax = pf['up_axis']
+                targets = buffer_effectors[:, self.target_effector_indices, :]
+                hz = targets[:, pf['hips'], ax]
+                dz = np.clip(pf['min_z'] - hz, 0.0, None)
+                n_lift = int((dz > 0).sum())
+                if n_lift:
+                    targets[:, pf['lift'], ax] += dz[:, None]
+                    print(f"[INFO]\t  Pelvis Floor: lifted {n_lift}/{len(dz)} frames, max {dz.max():.3f} m "
+                          f"(pelvis target z {hz.min():.3f}..{hz.max():.3f} m before)")
+                self.input_targets.append(targets)
+            else:
+                self.input_targets.append(buffer_effectors[:,self.target_effector_indices,:])
             self.input_sample_rates.append(buffers[i].sample_rate)
 
         if self._needs_contact_processing() and self.auto_detect_contacts:

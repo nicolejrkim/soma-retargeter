@@ -35,6 +35,22 @@ def _ui_scale(ui) -> float:
 _DEFAULT_COLOR = (235.0 / 255.0, 245.0 / 255.0, 112.0 / 255.0)
 
 
+def _load_retargeter_config(config: dict):
+    """Optional ``retargeter_config`` in the converter JSON: a retargeter config file
+    (absolute, or relative to the working directory) that replaces the registered one of
+    the target, for recipe variants without touching the registry (fork addition; the
+    legacy converter has the same key). Paths inside it are resolved against the target's
+    manifest directory unless absolute."""
+    path = config.get("retargeter_config")
+    if not path:
+        return None
+    path = pathlib.Path(path)
+    if not path.exists():
+        raise FileNotFoundError(f"[ERROR]: retargeter_config not found: {path}")
+    print(f"[INFO]: Loaded retargeter config [{path}]")
+    return utils.load_json(path)
+
+
 # Targets whose bare name runs the upstream v0.2.0 recipe although the legacy
 # registry knows them too (the fork's recipe stays reachable as <name>_legacy, with
 # "pipeline": "legacy", or through an ik_map retargeter_config).
@@ -367,7 +383,8 @@ class Viewer:
         if (retarget_solver == 'Newton'):
             import soma_retargeter.pipelines.soma_retargeting_pipeline as soma_retargeting_pipeline
             try:
-                pipeline = soma_retargeting_pipeline.SomaRetargetingPipeline(self.skeleton, retarget_source, retarget_target)
+                pipeline = soma_retargeting_pipeline.SomaRetargetingPipeline(
+                    self.skeleton, retarget_source, retarget_target, retarget_config=_load_retargeter_config(self.config))
             except Exception as error:
                 message = f"[ERROR]: {error}"
                 print(message)
@@ -593,7 +610,7 @@ class Viewer:
             import soma_retargeter.pipelines.soma_retargeting_pipeline as soma_retargeting_pipeline
             try:
                 retarget_pipeline = soma_retargeting_pipeline.SomaRetargetingPipeline(
-                    bvh_skeleton, retarget_source, retarget_target)
+                    bvh_skeleton, retarget_source, retarget_target, retarget_config=_load_retargeter_config(self.config))
             except Exception as error:
                 print(f"[ERROR]: {error}")
                 exit(-1)

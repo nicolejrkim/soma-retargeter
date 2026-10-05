@@ -63,8 +63,8 @@
         "Hips": {
             "t_body": "pelvis",
             "r_body": "pelvis",
-            "t_weight": 30.0,
-            "r_weight": 2.0
+            "t_weight": 100.0,
+            "r_weight": 10.0
         },
         "Chest": {
             "t_body": "torso_link",
@@ -111,42 +111,42 @@
         "LeftLeg": {
             "t_body": "left_hip_yaw_link",
             "r_body": "left_hip_yaw_link",
-            "t_weight": 1.5,
-            "r_weight": 0.15
+            "t_weight": 0.0,
+            "r_weight": 10.0
         },
         "LeftShin": {
             "t_body": "left_knee_link",
             "r_body": "left_knee_link",
-            "t_weight": 2.5,
-            "r_weight": 1.0
+            "t_weight": 0.0,
+            "r_weight": 10.0
         },
         "LeftFoot": {
             "t_body": "left_ankle_pitch_link",
             "r_body": "left_ankle_pitch_link",
-            "t_weight": 30.0,
-            "r_weight": 2.0
+            "t_weight": 100.0,
+            "r_weight": 10.0
         },
         "RightLeg": {
             "t_body": "right_hip_yaw_link",
             "r_body": "right_hip_yaw_link",
-            "t_weight": 1.5,
-            "r_weight": 0.15
+            "t_weight": 0.0,
+            "r_weight": 10.0
         },
         "RightShin": {
             "t_body": "right_knee_link",
             "r_body": "right_knee_link",
-            "t_weight": 2.5,
-            "r_weight": 1.0
+            "t_weight": 0.0,
+            "r_weight": 10.0
         },
         "RightFoot": {
             "t_body": "right_ankle_pitch_link",
             "r_body": "right_ankle_pitch_link",
-            "t_weight": 30.0,
-            "r_weight": 2.0
+            "t_weight": 100.0,
+            "r_weight": 10.0
         }
     },
     "pelvis_floor": {
-        "min_height_m": 0.41
+        "min_height_m": 0.48
     },
     "_provenance": "h1_2 lineage recipe with body/joint renames (benchmark/prep/derive_soma_scaler.py); pelvis_floor = lowest flat-footed crouch of the official model with the foot within 10 cm of the pelvis (knee + ankle limits) + ~1 cm."
 }

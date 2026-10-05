@@ -23,3 +23,6 @@ assets/motions/g1_ai_sapiens_compare*/
 
 # Large robot mesh assets are provided separately.
 assets/robot_assets/ai_sapiens/meshes/*.stl
+
+# IK weight optimizer runs (app/tools/ik_weight_optimizer.py, configs under app/tools/assets/ik_optimizer/)
+output/

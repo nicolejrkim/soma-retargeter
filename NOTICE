@@ -52,8 +52,11 @@ github.com/nicolejrkim/soma-retargeter):
 * assets/robotics/ — repo-level v0.2.0 packages, auto-registered by the
   converter: unitree/h1_2, unitree/r1 and booster/k1 (manifest, scaler,
   retargeter and post-processing configs generated from the robot zero pose
-  by the suite's make_v2_robot_package.py, 2026-10-05; opt-in, the legacy
-  recipes stay the defaults; r1 also carries the IK-weight-optimized variant)
+  by the suite's make_v2_robot_package.py, 2026-10-05). unitree_h1_2 and
+  unitree_r1 run these packages by default since 2026-10-05 (the legacy
+  recipes stay selectable as unitree_h1_2_legacy / unitree_r1_legacy);
+  booster_k1 keeps the legacy recipe; r1 also carries the IK-weight-optimized
+  variant as an opt-in file)
   plus the unitree/g1_upstream and booster/t1_upstream alias manifests.
 * app/tools/assets/ik_optimizer/ — IK weight optimizer configs for the
   three packages (ik_weight_optimizer_config_<target>.json).

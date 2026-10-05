@@ -201,6 +201,10 @@ _ROBOT_REGISTRY: Dict[str, RobotSpec] = {
 # The bare name "booster_t1" now runs NVIDIA's v0.2.0 recipe (app/bvh_to_csv_converter.py
 # _DEFAULT_PIPELINE); the fork's paper recipe stays selectable as booster_t1_legacy.
 _ROBOT_REGISTRY["booster_t1_legacy"] = _ROBOT_REGISTRY["booster_t1"]
+# Same for unitree_h1_2 / unitree_r1 (2026-10-05): the bare names run the fork's v0.2.0
+# packages under assets/robotics/; the legacy recipes stay selectable as <name>_legacy.
+_ROBOT_REGISTRY["unitree_h1_2_legacy"] = _ROBOT_REGISTRY["unitree_h1_2"]
+_ROBOT_REGISTRY["unitree_r1_legacy"] = _ROBOT_REGISTRY["unitree_r1"]
 
 
 def robot_names() -> List[str]:

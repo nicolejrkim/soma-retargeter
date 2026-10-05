@@ -55,7 +55,9 @@ def _load_retargeter_config(config: dict):
 # registry knows them too (the fork's recipe stays reachable as <name>_legacy, with
 # "pipeline": "legacy", or through an ik_map retargeter_config).
 _DEFAULT_PIPELINE = {
-    "booster_t1": "soma",   # 2026-10-05: NVIDIA's T1 recipe tracks better in DTMR than the paper recipe
+    "booster_t1": "soma",    # 2026-10-05: NVIDIA's T1 recipe tracks better in DTMR than the paper recipe
+    "unitree_h1_2": "soma",  # 2026-10-05: the fork's v0.2.0 package (assets/robotics/unitree/h1_2); paper recipe = unitree_h1_2_legacy
+    "unitree_r1": "soma",    # 2026-10-05: the fork's v0.2.0 package (assets/robotics/unitree/r1); paper recipe = unitree_r1_legacy
 }
 
 

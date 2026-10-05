@@ -1,0 +1,9 @@
+{
+    "name": "unitree_h1_2",
+    "desc": {
+        "xml_path": "../../../robots/unitree_h1_2/mjcf/h1_2_handless.xml"
+    },
+    "retarget_configs": {
+        "soma": "configs/soma_to_h1_2_retargeter_config.json"
+    }
+}

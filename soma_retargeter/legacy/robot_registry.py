@@ -198,6 +198,11 @@ _ROBOT_REGISTRY: Dict[str, RobotSpec] = {
 }
 
 
+# The bare name "booster_t1" now runs NVIDIA's v0.2.0 recipe (app/bvh_to_csv_converter.py
+# _DEFAULT_PIPELINE); the fork's paper recipe stays selectable as booster_t1_legacy.
+_ROBOT_REGISTRY["booster_t1_legacy"] = _ROBOT_REGISTRY["booster_t1"]
+
+
 def robot_names() -> List[str]:
     """Return the names of all registered target robots."""
     return list(_ROBOT_REGISTRY.keys())

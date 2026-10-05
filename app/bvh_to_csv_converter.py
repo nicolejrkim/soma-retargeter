@@ -35,6 +35,14 @@ def _ui_scale(ui) -> float:
 _DEFAULT_COLOR = (235.0 / 255.0, 245.0 / 255.0, 112.0 / 255.0)
 
 
+# Targets whose bare name runs the upstream v0.2.0 recipe although the legacy
+# registry knows them too (the fork's recipe stays reachable as <name>_legacy, with
+# "pipeline": "legacy", or through an ik_map retargeter_config).
+_DEFAULT_PIPELINE = {
+    "booster_t1": "soma",   # 2026-10-05: NVIDIA's T1 recipe tracks better in DTMR than the paper recipe
+}
+
+
 def _uses_legacy_pipeline(config: dict) -> bool:
     """Decide between the two pipelines this fork ships.
 
@@ -43,7 +51,8 @@ def _uses_legacy_pipeline(config: dict) -> bool:
     robots and recipes) coexist. A converter config chooses with
     ``"pipeline": "legacy" | "soma"``; otherwise the format of the referenced
     ``retargeter_config`` decides (``ik_map`` = legacy, ``ik_match_table`` =
-    soma); otherwise the target name, legacy registry first.
+    soma); otherwise ``_DEFAULT_PIPELINE``, then the target name with the
+    legacy registry first.
     """
     from soma_retargeter.legacy import robot_registry as legacy_registry
 
@@ -61,7 +70,10 @@ def _uses_legacy_pipeline(config: dict) -> bool:
                 return True
             if "ik_match_table" in keys:
                 return False
-    return config.get("retarget_target") in legacy_registry.robot_names()
+    target = config.get("retarget_target")
+    if target in _DEFAULT_PIPELINE:
+        return _DEFAULT_PIPELINE[target] == "legacy"
+    return target in legacy_registry.robot_names()
 
 
 class Viewer:

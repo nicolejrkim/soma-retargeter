@@ -1,0 +1,192 @@
+{
+    "initialization_pose": "soma/soma_zero_frame0.bvh",
+    "num_initialization_frames": 10,
+    "num_stabilization_frames": 5,
+    "human_robot_scaler_config": "booster_k1/soma_to_k1_scaler_config.json",
+    "feet_stabilizer_config": "booster_k1/k1_feet_stabilizer_config.json",
+    "model_height": 1.7,
+    "ik_iterations": 24,
+    "joint_limit_weight": 10.0,
+    "smooth_joint_filter_weight": 5.5,
+    "collision_weight": 0.0,
+    "enable_post_processing": true,
+    "smooth_joint_filter_objective_body_masks": {
+        "left_elbow_pitch_link": 0.3,
+        "right_elbow_pitch_link": 0.3
+    },
+    "ik_map": {
+        "Hips": {
+            "t_body": "trunk",
+            "r_body": "trunk",
+            "t_weight": 30.0,
+            "r_weight": 2.0
+        },
+        "Chest": {
+            "t_body": "trunk",
+            "r_body": "trunk",
+            "t_weight": 0.0,
+            "r_weight": 5.0
+        },
+        "LeftLeg": {
+            "t_body": "left_hip_yaw_link",
+            "r_body": "left_hip_yaw_link",
+            "t_weight": 0.0,
+            "r_weight": 2.0
+        },
+        "RightLeg": {
+            "t_body": "right_hip_yaw_link",
+            "r_body": "right_hip_yaw_link",
+            "t_weight": 0.0,
+            "r_weight": 2.0
+        },
+        "LeftShin": {
+            "t_body": "left_knee_pitch_link",
+            "r_body": "left_knee_pitch_link",
+            "t_weight": 0.0,
+            "r_weight": 2.0
+        },
+        "RightShin": {
+            "t_body": "right_knee_pitch_link",
+            "r_body": "right_knee_pitch_link",
+            "t_weight": 0.0,
+            "r_weight": 2.0
+        },
+        "LeftFoot": {
+            "t_body": "left_ankle_roll_link",
+            "r_body": "left_ankle_roll_link",
+            "t_weight": 15.0,
+            "r_weight": 2.0
+        },
+        "RightFoot": {
+            "t_body": "right_ankle_roll_link",
+            "r_body": "right_ankle_roll_link",
+            "t_weight": 15.0,
+            "r_weight": 2.0
+        },
+        "LeftArm": {
+            "t_body": "left_shoulder_roll_link",
+            "r_body": "left_shoulder_roll_link",
+            "t_weight": 0.0,
+            "r_weight": 1.0
+        },
+        "RightArm": {
+            "t_body": "right_shoulder_roll_link",
+            "r_body": "right_shoulder_roll_link",
+            "t_weight": 0.0,
+            "r_weight": 1.0
+        },
+        "LeftForeArm": {
+            "t_body": "left_elbow_yaw_link",
+            "r_body": "left_elbow_yaw_link",
+            "t_weight": 3.0,
+            "r_weight": 0.5
+        },
+        "RightForeArm": {
+            "t_body": "right_elbow_yaw_link",
+            "r_body": "right_elbow_yaw_link",
+            "t_weight": 3.0,
+            "r_weight": 0.5
+        },
+        "LeftHand": {
+            "t_body": "left_hand_tip",
+            "r_body": "left_hand_tip",
+            "t_weight": 2.0,
+            "r_weight": 0.0
+        },
+        "RightHand": {
+            "t_body": "right_hand_tip",
+            "r_body": "right_hand_tip",
+            "t_weight": 2.0,
+            "r_weight": 0.0
+        }
+    },
+    "enable_ai_sapiens_limb_bend_angle_objective": true,
+    "ai_sapiens_limb_bend_angle_weight": 9.0,
+    "ai_sapiens_limb_bend_angle_body_chains": [
+        {
+            "targets": [
+                "LeftArm",
+                "LeftForeArm",
+                "LeftHand"
+            ],
+            "bodies": [
+                "left_shoulder_roll_link",
+                "left_elbow_yaw_link",
+                "left_hand_tip"
+            ]
+        },
+        {
+            "targets": [
+                "RightArm",
+                "RightForeArm",
+                "RightHand"
+            ],
+            "bodies": [
+                "right_shoulder_roll_link",
+                "right_elbow_yaw_link",
+                "right_hand_tip"
+            ]
+        }
+    ],
+    "ai_sapiens_ik_joint_safety_margins_rad": {
+        "left_elbow_yaw_joint": 0.03,
+        "right_elbow_yaw_joint": 0.03,
+        "left_shoulder_roll_joint": 0.05,
+        "right_shoulder_roll_joint": 0.05
+    },
+    "neutral_reference_weight": 0.0,
+    "neutral_reference_objective_body_masks": {
+        "aaleft_shoulder_pitch_link": 1.0,
+        "left_shoulder_roll_link": 1.0,
+        "aaright_shoulder_pitch_link": 1.0,
+        "right_shoulder_roll_link": 1.0
+    },
+    "enable_ai_sapiens_arm_segment_direction_objective": true,
+    "ai_sapiens_arm_upper_direction_weight": 1.0,
+    "ai_sapiens_arm_forearm_direction_weight": 1.0,
+    "ai_sapiens_arm_direction_blend": 1.0,
+    "ai_sapiens_arm_direction_contact_risk_scale_enabled": false,
+    "ai_sapiens_arm_segment_direction_chains": [
+        {
+            "name": "left_arm_segment_direction",
+            "targets": [
+                "LeftArm",
+                "LeftForeArm",
+                "LeftHand"
+            ],
+            "source_joints": [
+                "LeftArm",
+                "LeftForeArm",
+                "LeftHand"
+            ],
+            "bodies": [
+                "left_shoulder_roll_link",
+                "left_elbow_yaw_link",
+                "left_hand_tip"
+            ],
+            "anchor": "root"
+        },
+        {
+            "name": "right_arm_segment_direction",
+            "targets": [
+                "RightArm",
+                "RightForeArm",
+                "RightHand"
+            ],
+            "source_joints": [
+                "RightArm",
+                "RightForeArm",
+                "RightHand"
+            ],
+            "bodies": [
+                "right_shoulder_roll_link",
+                "right_elbow_yaw_link",
+                "right_hand_tip"
+            ],
+            "anchor": "root"
+        }
+    ],
+    "pelvis_floor": {
+        "min_height_m": 0.32
+    }
+}

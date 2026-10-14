@@ -1,0 +1,9 @@
+{
+    "name": "unitree_r1",
+    "desc": {
+        "xml_path": "desc/mjcf/r1_24dof.xml"
+    },
+    "retarget_configs": {
+        "soma": "configs/soma_to_r1_retargeter_config.json"
+    }
+}

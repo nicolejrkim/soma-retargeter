@@ -199,7 +199,7 @@ python -c "from soma_retargeter.robotics.robot_registry import list_available_ta
 Expected result:
 
 ```text
-agibot-a3t3, agibot_x2ultra, booster_t1, unitree_g1, unitree_h2
+agibot-a3t3, agibot_x2ultra, booster_k1, booster_t1, unitree_g1, unitree_h1_2, unitree_h2, unitree_r1
 ```
 
 The order is alphabetical. If import fails, make sure you are still in the repository root, then rerun `uv sync` for uv or `python -m pip install -e .` in the activated conda environment. If one or more robot names are missing, rerun `git lfs pull`, then retry the verification.

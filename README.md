@@ -26,10 +26,10 @@ Retargeter does the following:
 
 The repository includes:
 
-- 10 example BVH motions and matching CSV results for all five bundled robots;
+- 10 example BVH motions and matching CSV results for all eight bundled robots;
 - an interactive viewer for loading, retargeting, inspecting, and saving one motion;
 - a headless mode for converting folders of motions;
-- configuration and model assets for `unitree_g1`, `unitree_h2`, `booster_t1`, `agibot_x2ultra`, and `agibot-a3t3`;
+- configuration and model assets for `unitree_g1`, `unitree_h2`, `unitree_h1_2`, `unitree_r1`, `booster_t1`, `booster_k1`, `agibot_x2ultra`, and `agibot-a3t3`;
 - tools for configuring another robot and tuning and optimizing inverse-kinematics weights.
 - 15 BVH motions for inverse-kinematics weights optimization
 
@@ -67,7 +67,7 @@ For the first run, use `assets/motions/bvh/Neutral_walk_forward_002__A057.bvh`. 
 
 The `.csv` output stores the root pose and actuated robot joint values over time. Joint columns correspond to the selected robot model. Two target robots can have different columns, even when they were generated from the same BVH.
 
-The bundled CSV files under `assets/motions/csv/` are organized by robot and provide reference results for all five bundled robots. Select the folder matching your target robot. Your result should have the same general motion, but exact values can change when configuration or dependency versions change.
+The bundled CSV files under `assets/motions/csv/` are organized by robot and provide reference results for all eight bundled robots. Select the folder matching your target robot. Your result should have the same general motion, but exact values can change when configuration or dependency versions change.
 
 ## Bundled robot targets
 
@@ -75,7 +75,10 @@ Use these exact target names when using bundled robots:
 
 - `unitree_g1` — the default target and the best choice for the first tutorial;
 - `unitree_h2`;
+- `unitree_h1_2`;
+- `unitree_r1`;
 - `booster_t1`;
+- `booster_k1`;
 - `agibot_x2ultra`;
 - `agibot-a3t3`.
 

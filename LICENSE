@@ -210,7 +210,14 @@ Unitree robot assets
 Applies to:
   soma_retargeter/assets/robotics/unitree/g1/desc/**
   soma_retargeter/assets/robotics/unitree/h2/desc/**
+  soma_retargeter/assets/robotics/unitree/h1_2/desc/**
+  soma_retargeter/assets/robotics/unitree/r1/desc/**
 License copy: licenses/unitree-LICENSE.txt
+Pinned upstream sources:
+  H1-2: https://github.com/unitreerobotics/unitree_ros/tree/5994d4faef0a9cadd3287f8de0199a67eeb2a259/robots/h1_2_description
+        (meshes unmodified; h1_2_handless.xml with the scene/visualization block removed)
+  R1:   https://github.com/unitreerobotics/unitree_ros/tree/5994d4faef0a9cadd3287f8de0199a67eeb2a259/robots/r1_description
+        (meshes unmodified; r1_24dof.xml is an MJCF of the 24-dof R1 kinematic chain derived from it)
 
 BSD 3-Clause License
 
@@ -245,7 +252,12 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 Booster Robotics robot assets
 Applies to:
   soma_retargeter/assets/robotics/booster/t1/desc/**
+  soma_retargeter/assets/robotics/booster/k1/desc/**
 License copy: licenses/booster-LICENSE.txt
+Pinned upstream sources:
+  K1: https://github.com/BoosterRobotics/booster_assets/tree/3c2dfa99e09beddf092e0d6521dbbcec7e7903ed/robots/K1
+      (meshes unmodified; K1_22dof.xml with viewer/sensor/camera elements removed,
+      massless hand_tip/toe_tip marker bodies added, elbow_yaw range limited to the bend side)
 
 BSD 3-Clause License
 

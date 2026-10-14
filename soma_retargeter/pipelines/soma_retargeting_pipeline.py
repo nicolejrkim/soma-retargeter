@@ -51,6 +51,7 @@ _DEFAULT_SELF_PENETRATION_OBJECTIVE_WEIGHT = 0.0
 _DEFAULT_SELF_PENETRATION_SUB_STEP_COUNT = 3
 _DEFAULT_NUM_INITIALIZATION_FRAMES = 10
 _DEFAULT_NUM_STABILIZATION_FRAMES = 5
+_DEFAULT_PELVIS_FLOOR_FIXED_EFFECTORS = ('LeftFoot', 'RightFoot', 'LeftToe', 'RightToe', 'LeftToeBase', 'RightToeBase')
 
 class SomaRetargetingPipeline:
     """
@@ -172,6 +173,26 @@ class SomaRetargetingPipeline:
             'auto_detect_contacts',
             self.contact_processing_enabled,
         )
+
+        # Optional pelvis floor: keeps the pelvis target at or above a minimum height by
+        # lifting every non-foot effector target, for robots whose legs cannot fold as far
+        # as the human's (sitting, crawling). Disabled when the key is absent.
+        self.pelvis_floor: Optional[dict] = None
+        pelvis_floor_config = retargeter_config.get('pelvis_floor', None)
+        if pelvis_floor_config:
+            min_height = float(pelvis_floor_config['min_height_m'])
+            if min_height <= 0.0:
+                raise ValueError(f"pelvis_floor.min_height_m must be positive, got {min_height}")
+            pelvis_effector = pelvis_floor_config.get('pelvis_effector', 'Hips')
+            if pelvis_effector not in self.mapped_joints:
+                raise ValueError(f"pelvis_floor.pelvis_effector [{pelvis_effector}] is not in ik_match_table")
+            fixed = set(pelvis_floor_config.get('fixed_effectors', _DEFAULT_PELVIS_FLOOR_FIXED_EFFECTORS))
+            self.pelvis_floor = {
+                'min_height': min_height,
+                'pelvis_index': self.mapped_joints.index(pelvis_effector),
+                'lifted_indices': [i for i, name in enumerate(self.mapped_joints) if name not in fixed],
+                'up_axis': int(pelvis_floor_config.get('up_axis', 2)),
+            }
         self.contact_results: list[BaselineAResult] = []
         self.plant_subsegment_results: list[PlantSubsegmentResult] = []
         self.plant_blenders: list[PlantCorrectionBlender] = []
@@ -356,6 +377,23 @@ class SomaRetargetingPipeline:
             )
             self.plant_blenders.append(blender)
 
+    def _apply_pelvis_floor(self, targets: np.ndarray):
+        """Lift non-foot effector targets so the pelvis target never goes below the floor height.
+
+        For every frame whose pelvis target is below ``pelvis_floor.min_height_m``, all
+        effectors except the fixed (foot) ones are raised by the shortfall along the up
+        axis. The upper body keeps its shape and the feet stay planted, so the IK is not
+        asked for a pelvis height the robot's legs cannot reach.
+
+        Args:
+            targets: Effector target transforms of shape ``(num_frames, num_mapped_joints, 7)``; modified in place.
+        """
+        floor = self.pelvis_floor
+        axis = floor['up_axis']
+        shortfall = np.clip(floor['min_height'] - targets[:, floor['pelvis_index'], axis], 0.0, None)
+        if np.any(shortfall > 0.0):
+            targets[:, floor['lifted_indices'], axis] += shortfall[:, None]
+
     def add_input_motions(self, buffers: list[AnimationBuffer], offsets: list[wp.transform], scale_animation: bool):
         """Preprocess animation buffers into effector targets and optionally run contact detection.
 
@@ -383,7 +421,10 @@ class SomaRetargetingPipeline:
             self.max_frames = max(self.max_frames, buffer.num_frames)
             buffer_effectors = self.human_robot_scaler.compute_effectors_from_buffer(buffer, scale_animation, offsets[i])
 
-            self.input_targets.append(buffer_effectors[:,self.target_effector_indices,:])
+            targets = buffer_effectors[:,self.target_effector_indices,:]
+            if self.pelvis_floor is not None:
+                self._apply_pelvis_floor(targets)
+            self.input_targets.append(targets)
             self.input_sample_rates.append(buffers[i].sample_rate)
 
         if self._needs_contact_processing() and self.auto_detect_contacts:
@@ -417,6 +458,8 @@ class SomaRetargetingPipeline:
         print(f"[INFO]\t  Initialization Pose: {self.initialization_pose is not None}")
         print(f"[INFO]\t  Initialization Frame Count: {self.num_initialization_frames}")
         print(f"[INFO]\t  Constraint Stabilization Frame Count: {self.num_stabilization_frames}")
+        if self.pelvis_floor is not None:
+            print(f"[INFO]\t  Pelvis Floor: {self.pelvis_floor['min_height']:.3f} m")
         print(f"[INFO]\t  IK Solver Iterations: {self.ik_iterations}")
         print(f"[INFO]\t  Joint Limit Objective Weight: {self.joint_limit_weight}")
         print(f"[INFO]\t  Smooth Joint Filter Objective Weight: {self.smooth_joint_filter_weight}")

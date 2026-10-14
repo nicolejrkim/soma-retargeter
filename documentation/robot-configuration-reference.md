@@ -263,6 +263,23 @@ These are configurator defaults that demonstrate field placement, not optimized 
 
 More iterations can improve convergence but increase processing cost. Higher objective weights do not guarantee better motion; evaluate tracking and joint-limit behavior together.
 
+### Pelvis floor
+
+Optional. A human can sit, kneel or crawl with the pelvis lower than a robot can reach while its feet stay on the ground, typically when the robot's knees bend less far than a human's. The IK then compromises and pulls the whole robot, feet included, below the ground. `pelvis_floor` prevents that: on every frame where the scaled pelvis target is below `min_height_m`, all effector targets except the feet are raised by the shortfall, so the robot crouches as low as it can with its upper body pose kept and its feet planted.
+
+```json
+"pelvis_floor": {
+    "min_height_m": 0.32
+}
+```
+
+- `min_height_m` — required; the lowest pelvis target height, in meters, above the ground. Choose it near the robot's deepest flat-footed crouch.
+- `pelvis_effector` — `ik_match_table` key of the pelvis target. Default `Hips`.
+- `fixed_effectors` — `ik_match_table` keys that are never lifted. Default `LeftFoot`, `RightFoot`, `LeftToe`, `RightToe`, `LeftToeBase`, `RightToeBase`.
+- `up_axis` — index of the vertical axis of the target positions. Default `2` (Z).
+
+When the key is absent, targets are not modified. Motions that never bring the pelvis target below `min_height_m` produce identical output with or without it. Trade-off: floor-level motion is not reproduced literally, and hands that touch the ground in the source stop short of it by the same amount.
+
 ### `ik_match_table`
 
 Each key is a mapped SOMA joint. Its object contains:
